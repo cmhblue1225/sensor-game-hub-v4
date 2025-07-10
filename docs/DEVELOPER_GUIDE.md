@@ -99,7 +99,8 @@ sensor-game-hub-v4/
 ├── package.json              # 프로젝트 설정 및 의존성
 ├── client/                   # 클라이언트 파일들
 │   ├── hub.html             # 메인 허브 페이지 (PC)
-│   └── sensor.html          # 센서 클라이언트 페이지 (모바일)
+│   ├── sensor.html          # 센서 클라이언트 페이지 (모바일)
+│   └── admin.html           # 관리자 대시보드
 ├── sdk/                     # 게임 개발 SDK
 │   ├── sensor-game-sdk.js   # 메인 SDK
 │   └── utils.js             # 유틸리티 함수들
@@ -2102,6 +2103,352 @@ class 3DSensorManager {
 }
 ```
 
+### 3D 물리 엔진 (Cannon-ES) 통합
+
+센서 게임 허브 v4.0은 3D 물리 시뮬레이션을 위한 Cannon-ES 라이브러리를 로컬에서 제공합니다.
+
+#### Cannon-ES 기본 설정
+
+```javascript
+// Cannon-ES 라이브러리 로드 (로컬 제공)
+// HTML: <script src="/libs/cannon-es.js"></script>
+
+class Physics3DGame extends SensorGameSDK {
+    constructor() {
+        super({
+            gameId: 'physics-3d-game',
+            gameType: 'solo',
+            sensorTypes: ['orientation', 'accelerometer', 'gyroscope']
+        });
+        
+        this.initPhysicsWorld();
+        this.setupObjects();
+    }
+    
+    initPhysicsWorld() {
+        // 물리 세계 생성
+        this.world = new CANNON.World({
+            gravity: new CANNON.Vec3(0, -9.82, 0) // 지구 중력
+        });
+        
+        // 충돌 감지 설정
+        this.world.broadphase = new CANNON.NaiveBroadphase();
+        this.world.solver.iterations = 10;
+        
+        // 바닥 평면 생성
+        const groundShape = new CANNON.Plane();
+        const groundBody = new CANNON.Body({ mass: 0 });
+        groundBody.addShape(groundShape);
+        groundBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI / 2);
+        this.world.add(groundBody);
+    }
+    
+    setupObjects() {
+        // 플레이어 강체 생성 (구)
+        const playerShape = new CANNON.Sphere(1);
+        this.playerBody = new CANNON.Body({ mass: 5 });
+        this.playerBody.addShape(playerShape);
+        this.playerBody.position.set(0, 10, 0);
+        this.world.add(this.playerBody);
+        
+        // 장애물 생성 (박스)
+        this.obstacles = [];
+        for (let i = 0; i < 5; i++) {
+            const boxShape = new CANNON.Box(new CANNON.Vec3(1, 1, 1));
+            const boxBody = new CANNON.Body({ mass: 1 });
+            boxBody.addShape(boxShape);
+            boxBody.position.set(
+                Math.random() * 20 - 10,
+                Math.random() * 10 + 5,
+                Math.random() * 20 - 10
+            );
+            this.world.add(boxBody);
+            this.obstacles.push(boxBody);
+        }
+    }
+    
+    // 센서 입력을 물리 힘으로 변환
+    handleSensorInput(data) {
+        const { gameInput } = data;
+        
+        if (gameInput.tilt && this.playerBody) {
+            // 기울기를 수평 힘으로 변환
+            const forceX = gameInput.tilt.x * 50;
+            const forceZ = gameInput.tilt.y * 50;
+            
+            this.playerBody.applyForce(
+                new CANNON.Vec3(forceX, 0, forceZ),
+                this.playerBody.position
+            );
+        }
+        
+        if (gameInput.shake && gameInput.shake.detected) {
+            // 흔들기로 점프 (위쪽 힘)
+            this.playerBody.applyImpulse(
+                new CANNON.Vec3(0, 100, 0),
+                this.playerBody.position
+            );
+        }
+        
+        if (gameInput.movement) {
+            // 가속도계로 추가 힘 적용
+            const impulseX = gameInput.movement.x * 10;
+            const impulseZ = gameInput.movement.z * 10;
+            
+            this.playerBody.applyImpulse(
+                new CANNON.Vec3(impulseX, 0, impulseZ),
+                this.playerBody.position
+            );
+        }
+    }
+    
+    // 물리 시뮬레이션 업데이트
+    update(deltaTime) {
+        // 물리 세계 스텝 실행
+        this.world.step(deltaTime);
+        
+        // 충돌 검사
+        this.checkCollisions();
+        
+        // 플레이어가 너무 아래로 떨어지면 리셋
+        if (this.playerBody.position.y < -50) {
+            this.resetPlayer();
+        }
+    }
+    
+    checkCollisions() {
+        // 플레이어와 장애물 충돌 검사
+        for (const obstacle of this.obstacles) {
+            const distance = this.playerBody.position.distanceTo(obstacle.position);
+            if (distance < 2.5) {
+                // 충돌 이벤트 처리
+                this.onPlayerObstacleCollision(obstacle);
+            }
+        }
+    }
+    
+    onPlayerObstacleCollision(obstacle) {
+        // 충돌 시 파티클 효과, 점수 등 처리
+        this.score += 10;
+        
+        // 장애물 위치 재배치
+        obstacle.position.set(
+            Math.random() * 20 - 10,
+            Math.random() * 10 + 5,
+            Math.random() * 20 - 10
+        );
+        obstacle.velocity.set(0, 0, 0);
+        obstacle.angularVelocity.set(0, 0, 0);
+    }
+    
+    resetPlayer() {
+        this.playerBody.position.set(0, 10, 0);
+        this.playerBody.velocity.set(0, 0, 0);
+        this.playerBody.angularVelocity.set(0, 0, 0);
+    }
+}
+```
+
+#### 고급 물리 기능
+
+```javascript
+// 관절과 제약 조건 사용
+class AdvancedPhysicsGame extends Physics3DGame {
+    setupAdvancedObjects() {
+        // 로프 시뮬레이션 (연결된 구들)
+        this.createRope();
+        
+        // 차량 시뮬레이션
+        this.createVehicle();
+        
+        // 유체 시뮬레이션 (파티클)
+        this.createFluidSystem();
+    }
+    
+    createRope() {
+        const ropeSegments = 10;
+        const segmentLength = 1;
+        this.ropeSegments = [];
+        
+        for (let i = 0; i < ropeSegments; i++) {
+            const segmentShape = new CANNON.Sphere(0.2);
+            const segmentBody = new CANNON.Body({ mass: 1 });
+            segmentBody.addShape(segmentShape);
+            segmentBody.position.set(0, 10 - i * segmentLength, 0);
+            this.world.add(segmentBody);
+            this.ropeSegments.push(segmentBody);
+            
+            // 이전 세그먼트와 연결
+            if (i > 0) {
+                const constraint = new CANNON.DistanceConstraint(
+                    this.ropeSegments[i - 1],
+                    segmentBody,
+                    segmentLength
+                );
+                this.world.addConstraint(constraint);
+            }
+        }
+        
+        // 첫 번째 세그먼트를 고정점에 연결
+        const anchor = new CANNON.Body({ mass: 0 });
+        anchor.position.set(0, 15, 0);
+        this.world.add(anchor);
+        
+        const anchorConstraint = new CANNON.DistanceConstraint(
+            anchor,
+            this.ropeSegments[0],
+            segmentLength
+        );
+        this.world.addConstraint(anchorConstraint);
+    }
+    
+    createVehicle() {
+        // 차체 생성
+        const chassisShape = new CANNON.Box(new CANNON.Vec3(2, 0.5, 1));
+        this.vehicleChassis = new CANNON.Body({ mass: 150 });
+        this.vehicleChassis.addShape(chassisShape);
+        this.vehicleChassis.position.set(0, 4, 0);
+        this.world.add(this.vehicleChassis);
+        
+        // 바퀴 생성 및 연결
+        this.wheels = [];
+        const wheelPositions = [
+            [-1.5, -0.5, 1.2],   // 앞왼쪽
+            [1.5, -0.5, 1.2],    // 앞오른쪽
+            [-1.5, -0.5, -1.2],  // 뒤왼쪽
+            [1.5, -0.5, -1.2]    // 뒤오른쪽
+        ];
+        
+        wheelPositions.forEach(position => {
+            const wheelShape = new CANNON.Cylinder(0.5, 0.5, 0.3, 8);
+            const wheelBody = new CANNON.Body({ mass: 10 });
+            wheelBody.addShape(wheelShape);
+            wheelBody.position.set(
+                this.vehicleChassis.position.x + position[0],
+                this.vehicleChassis.position.y + position[1],
+                this.vehicleChassis.position.z + position[2]
+            );
+            this.world.add(wheelBody);
+            this.wheels.push(wheelBody);
+            
+            // 바퀴를 차체에 연결 (HingeConstraint)
+            const constraint = new CANNON.HingeConstraint(
+                this.vehicleChassis,
+                wheelBody,
+                {
+                    pivotA: new CANNON.Vec3(position[0], position[1], position[2]),
+                    pivotB: new CANNON.Vec3(0, 0, 0),
+                    axisA: new CANNON.Vec3(0, 0, 1),
+                    axisB: new CANNON.Vec3(0, 0, 1)
+                }
+            );
+            this.world.addConstraint(constraint);
+        });
+    }
+    
+    // 센서로 차량 제어
+    handleVehicleControl(gameInput) {
+        if (this.vehicleChassis && this.wheels.length > 0) {
+            // 기울기로 방향 제어
+            if (gameInput.tilt) {
+                const steerForce = gameInput.tilt.x * 50;
+                
+                // 앞바퀴에 조향력 적용
+                this.wheels[0].applyForce(new CANNON.Vec3(steerForce, 0, 0));
+                this.wheels[1].applyForce(new CANNON.Vec3(steerForce, 0, 0));
+            }
+            
+            // 가속도계로 가속/제동
+            if (gameInput.movement && gameInput.movement.y > 2) {
+                // 앞으로 기울이면 가속
+                const acceleration = new CANNON.Vec3(0, 0, 100);
+                this.vehicleChassis.applyForce(acceleration);
+            } else if (gameInput.movement && gameInput.movement.y < -2) {
+                // 뒤로 기울이면 제동
+                this.vehicleChassis.velocity.scale(0.9, this.vehicleChassis.velocity);
+            }
+        }
+    }
+}
+```
+
+#### Cannon-ES 최적화 팁
+
+```javascript
+// 성능 최적화를 위한 설정
+class OptimizedPhysicsGame extends SensorGameSDK {
+    initOptimizedPhysics() {
+        this.world = new CANNON.World();
+        
+        // 1. 효율적인 브로드페이즈 알고리즘 사용
+        this.world.broadphase = new CANNON.SAPBroadphase(this.world);
+        
+        // 2. 솔버 반복 횟수 조정 (정확도 vs 성능)
+        this.world.solver.iterations = 5; // 기본 10에서 5로 감소
+        
+        // 3. 접촉 재질 설정으로 성능 향상
+        this.setupContactMaterials();
+        
+        // 4. 객체 풀링 사용
+        this.setupObjectPooling();
+    }
+    
+    setupContactMaterials() {
+        // 재질 정의
+        this.groundMaterial = new CANNON.Material('ground');
+        this.playerMaterial = new CANNON.Material('player');
+        
+        // 접촉 재질 설정
+        const groundPlayerContact = new CANNON.ContactMaterial(
+            this.groundMaterial,
+            this.playerMaterial,
+            {
+                friction: 0.4,
+                restitution: 0.3
+            }
+        );
+        this.world.addContactMaterial(groundPlayerContact);
+    }
+    
+    setupObjectPooling() {
+        // 객체 풀 생성 (파티클, 총알 등)
+        this.bulletPool = [];
+        this.particlePool = [];
+        
+        // 미리 객체들을 생성해두고 재사용
+        for (let i = 0; i < 50; i++) {
+            const bulletShape = new CANNON.Sphere(0.1);
+            const bulletBody = new CANNON.Body({ mass: 0.1 });
+            bulletBody.addShape(bulletShape);
+            bulletBody.sleep(); // 비활성화 상태로 시작
+            this.bulletPool.push(bulletBody);
+        }
+    }
+    
+    fireBullet(position, direction) {
+        // 풀에서 사용 가능한 총알 가져오기
+        const bullet = this.bulletPool.find(b => b.sleepState === CANNON.Body.SLEEPING);
+        
+        if (bullet) {
+            bullet.position.copy(position);
+            bullet.velocity.set(
+                direction.x * 20,
+                direction.y * 20,
+                direction.z * 20
+            );
+            bullet.wakeUp();
+            this.world.add(bullet);
+            
+            // 3초 후 비활성화
+            setTimeout(() => {
+                bullet.sleep();
+                this.world.remove(bullet);
+            }, 3000);
+        }
+    }
+}
+```
+
 ### 인공지능 통합
 
 ```javascript
@@ -2206,6 +2553,84 @@ class AdaptiveDifficulty {
     }
 }
 ```
+
+## 🛠️ 관리자 대시보드
+
+센서 게임 허브 v4.0은 실시간 모니터링과 관리를 위한 완전한 관리자 대시보드를 제공합니다.
+
+### 접속 방법
+
+```
+https://your-domain.com/admin
+```
+
+### 주요 기능
+
+#### 1. 실시간 서버 모니터링
+- **서버 업타임**: 서버 시작 이후 경과 시간
+- **메모리 사용량**: 현재 메모리 사용량 (MB)
+- **CPU 사용량**: 실시간 CPU 사용률
+- **총 연결 수**: 누적 연결 클라이언트 수
+
+#### 2. 세션 및 클라이언트 관리
+- **활성 세션**: 현재 활성화된 세션 수
+- **연결된 센서**: 현재 연결된 센서 클라이언트 수
+- **클라이언트 목록**: 모든 연결된 클라이언트 상세 정보
+- **지연시간 모니터링**: 각 클라이언트의 네트워크 지연시간
+
+#### 3. 멀티플레이어 룸 관리
+- **생성된 룸 목록**: 모든 활성 멀티플레이어 룸
+- **룸 참가자**: 각 룸의 플레이어 정보
+- **호스트 정보**: 룸 호스트 식별 및 권한 상태
+
+#### 4. QR 코드 기능
+- **모바일 접속 QR**: 센서 클라이언트 직접 접속용
+- **자동 생성**: 현재 서버 URL 기반 자동 QR 코드 생성
+- **편리한 접속**: QR 스캔으로 즉시 센서 클라이언트 접속
+
+#### 5. 실시간 로그 시스템
+- **시스템 이벤트**: 클라이언트 연결/해제, 룸 생성/삭제 등
+- **에러 추적**: 실시간 에러 로그 및 경고 메시지
+- **필터링**: 로그 타입별 색상 구분 (정보/성공/경고/에러)
+
+#### 6. 관리 제어 기능
+- **전체 연결 해제**: 모든 클라이언트 강제 연결 해제
+- **로그 관리**: 로그 지우기 및 관리
+- **데이터 새로고침**: 실시간 상태 정보 수동 새로고침
+
+### 개발자를 위한 관리자 API
+
+```javascript
+// 관리자 상태 정보 API
+GET /api/admin/status
+
+// 응답 예시
+{
+    "success": true,
+    "status": {
+        "uptime": 3600000,           // 서버 업타임 (ms)
+        "memory": 52428800,          // 메모리 사용량 (bytes)
+        "cpu": 15,                   // CPU 사용률 (%)
+        "totalConnections": 25,      // 총 연결 수
+        "sessions": {
+            "active": 5,             // 활성 세션
+            "today": 12              // 오늘 생성된 세션
+        },
+        "sensors": {
+            "connected": 8           // 연결된 센서
+        },
+        "avgLatency": 45,            // 평균 지연시간 (ms)
+        "clients": [...],            // 클라이언트 목록
+        "rooms": [...]               // 룸 목록
+    }
+}
+```
+
+### 보안 고려사항
+
+- 관리자 대시보드는 개발 및 모니터링 목적으로 설계되었습니다
+- 프로덕션 환경에서는 적절한 인증 시스템 구현을 권장합니다
+- 민감한 서버 정보는 필터링하여 표시합니다
 
 ## 🌟 마무리
 

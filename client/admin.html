@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🛠️ 센서 게임 허브 v4.0 - 관리자 대시보드</title>
+    <style>
+        :root {
+            --primary: #6366f1;
+            --secondary: #ec4899;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --error: #ef4444;
+            --background: #0f172a;
+            --surface: #1e293b;
+            --card: #334155;
+            --text-primary: #f8fafc;
+            --text-secondary: #cbd5e1;
+            --border: #475569;
+            --accent: #7c3aed;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, var(--background), #1e1b4b);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: auto;
+        }
+        
+        .admin-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .admin-header {
+            text-align: center;
+            margin-bottom: 3rem;
+            padding: 2rem;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 1rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+        
+        .admin-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        .admin-subtitle {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .dashboard-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .dashboard-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 35px rgba(0, 0, 0, 0.3);
+        }
+        
+        .card-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .card-icon {
+            font-size: 1.5rem;
+            margin-right: 0.75rem;
+        }
+        
+        .card-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--primary);
+        }
+        
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-left: auto;
+            animation: pulse 2s infinite;
+        }
+        
+        .status-online {
+            background: var(--success);
+        }
+        
+        .status-warning {
+            background: var(--warning);
+        }
+        
+        .status-offline {
+            background: var(--error);
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .metric-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid rgba(75, 85, 99, 0.3);
+        }
+        
+        .metric-row:last-child {
+            border-bottom: none;
+        }
+        
+        .metric-label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+        
+        .metric-value {
+            font-weight: 600;
+            font-size: 1rem;
+        }
+        
+        .metric-value.success {
+            color: var(--success);
+        }
+        
+        .metric-value.warning {
+            color: var(--warning);
+        }
+        
+        .metric-value.error {
+            color: var(--error);
+        }
+        
+        .client-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .client-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem;
+            margin: 0.5rem 0;
+            background: var(--card);
+            border-radius: 0.5rem;
+            border-left: 4px solid var(--primary);
+            transition: all 0.2s ease;
+        }
+        
+        .client-item:hover {
+            background: rgba(99, 102, 241, 0.1);
+        }
+        
+        .client-info {
+            flex: 1;
+        }
+        
+        .client-id {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+        
+        .client-details {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+        
+        .client-status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .latency {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            padding: 0.25rem 0.5rem;
+            background: var(--background);
+            border-radius: 0.25rem;
+        }
+        
+        .room-item {
+            background: var(--card);
+            border-radius: 0.75rem;
+            padding: 1rem;
+            margin: 0.75rem 0;
+            border-left: 4px solid var(--accent);
+        }
+        
+        .room-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+        
+        .room-name {
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+        
+        .room-players {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+        
+        .player-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        
+        .player-tag {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 1rem;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+        
+        .host-tag {
+            background: linear-gradient(135deg, var(--warning), var(--error));
+        }
+        
+        .qr-section {
+            text-align: center;
+            background: var(--surface);
+            border-radius: 1rem;
+            padding: 2rem;
+            border: 1px solid var(--border);
+            margin-bottom: 2rem;
+        }
+        
+        .qr-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--primary);
+        }
+        
+        .qr-code {
+            display: inline-block;
+            padding: 1rem;
+            background: white;
+            border-radius: 0.5rem;
+            margin: 1rem 0;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+        
+        .qr-url {
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            background: var(--card);
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            margin-top: 1rem;
+        }
+        
+        .controls-section {
+            display: flex;
+            gap: 1rem;
+            margin-top: 2rem;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 0.9rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+        }
+        
+        .btn-danger {
+            background: var(--error);
+            color: white;
+        }
+        
+        .btn-warning {
+            background: var(--warning);
+            color: var(--background);
+        }
+        
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+        
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .logs-section {
+            grid-column: 1 / -1;
+            background: var(--background);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            border: 1px solid var(--border);
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            line-height: 1.5;
+        }
+        
+        .log-entry {
+            margin: 0.25rem 0;
+            padding: 0.25rem;
+            border-radius: 0.25rem;
+        }
+        
+        .log-info {
+            color: var(--text-secondary);
+        }
+        
+        .log-success {
+            color: var(--success);
+            background: rgba(16, 185, 129, 0.1);
+        }
+        
+        .log-warning {
+            color: var(--warning);
+            background: rgba(245, 158, 11, 0.1);
+        }
+        
+        .log-error {
+            color: var(--error);
+            background: rgba(239, 68, 68, 0.1);
+        }
+        
+        /* 반응형 디자인 */
+        @media (max-width: 768px) {
+            .admin-container {
+                padding: 1rem;
+            }
+            
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+            
+            .admin-title {
+                font-size: 2rem;
+            }
+            
+            .controls-section {
+                flex-direction: column;
+            }
+            
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+        
+        /* 스크롤바 스타일 */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: var(--surface);
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--secondary);
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-container">
+        <!-- 헤더 -->
+        <div class="admin-header">
+            <h1 class="admin-title">🛠️ 관리자 대시보드</h1>
+            <p class="admin-subtitle">센서 게임 허브 v4.0 실시간 모니터링 및 관리</p>
+        </div>
+        
+        <!-- QR 코드 섹션 -->
+        <div class="qr-section">
+            <h2 class="qr-title">📱 모바일 센서 클라이언트 접속</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 1rem;">
+                QR 코드를 스캔하여 모바일에서 센서 클라이언트에 바로 접속하세요
+            </p>
+            <div class="qr-code" id="qrCode">
+                <!-- QR 코드가 여기에 생성됩니다 -->
+            </div>
+            <div class="qr-url" id="sensorUrl">
+                https://sensor-game-hub-v4.onrender.com/sensor
+            </div>
+        </div>
+        
+        <!-- 대시보드 그리드 -->
+        <div class="dashboard-grid">
+            <!-- 서버 상태 -->
+            <div class="dashboard-card">
+                <div class="card-header">
+                    <span class="card-icon">🖥️</span>
+                    <span class="card-title">서버 상태</span>
+                    <div class="status-indicator status-online" id="serverStatus"></div>
+                </div>
+                <div class="metric-row">
+                    <span class="metric-label">서버 업타임</span>
+                    <span class="metric-value" id="uptime">계산 중...</span>
+                </div>
+                <div class="metric-row">
+                    <span class="metric-label">메모리 사용량</span>
+                    <span class="metric-value" id="memoryUsage">계산 중...</span>
+                </div>
+                <div class="metric-row">
+                    <span class="metric-label">CPU 사용량</span>
+                    <span class="metric-value" id="cpuUsage">계산 중...</span>
+                </div>
+                <div class="metric-row">
+                    <span class="metric-label">총 연결 수</span>
+                    <span class="metric-value success" id="totalConnections">0</span>
+                </div>
+            </div>
+            
+            <!-- 세션 통계 -->
+            <div class="dashboard-card">
+                <div class="card-header">
+                    <span class="card-icon">🎯</span>
+                    <span class="card-title">세션 통계</span>
+                </div>
+                <div class="metric-row">
+                    <span class="metric-label">활성 세션</span>
+                    <span class="metric-value success" id="activeSessions">0</span>
+                </div>
+                <div class="metric-row">
+                    <span class="metric-label">연결된 센서</span>
+                    <span class="metric-value" id="connectedSensors">0</span>
+                </div>
+                <div class="metric-row">
+                    <span class="metric-label">오늘 생성된 세션</span>
+                    <span class="metric-value" id="todaySessions">0</span>
+                </div>
+                <div class="metric-row">
+                    <span class="metric-label">평균 지연시간</span>
+                    <span class="metric-value" id="avgLatency">- ms</span>
+                </div>
+            </div>
+            
+            <!-- 연결된 클라이언트 -->
+            <div class="dashboard-card">
+                <div class="card-header">
+                    <span class="card-icon">📱</span>
+                    <span class="card-title">연결된 클라이언트</span>
+                    <span class="metric-value" id="clientCount">0</span>
+                </div>
+                <div class="client-list" id="clientList">
+                    <div style="text-align: center; color: var(--text-secondary); padding: 2rem;">
+                        연결된 클라이언트가 없습니다
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 멀티플레이어 룸 -->
+            <div class="dashboard-card">
+                <div class="card-header">
+                    <span class="card-icon">🏠</span>
+                    <span class="card-title">멀티플레이어 룸</span>
+                    <span class="metric-value" id="roomCount">0</span>
+                </div>
+                <div class="client-list" id="roomList">
+                    <div style="text-align: center; color: var(--text-secondary); padding: 2rem;">
+                        생성된 룸이 없습니다
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 시스템 로그 -->
+            <div class="logs-section">
+                <div class="card-header">
+                    <span class="card-icon">📊</span>
+                    <span class="card-title">실시간 시스템 로그</span>
+                </div>
+                <div id="systemLogs">
+                    <div class="log-entry log-info">[INFO] 관리자 대시보드가 시작되었습니다.</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 제어 버튼 -->
+        <div class="controls-section">
+            <button class="btn btn-primary" onclick="refreshData()">
+                🔄 새로고침
+            </button>
+            <button class="btn btn-warning" onclick="clearLogs()">
+                🗑️ 로그 지우기
+            </button>
+            <button class="btn btn-danger" onclick="disconnectAllClients()">
+                ⚠️ 모든 클라이언트 연결 해제
+            </button>
+            <button class="btn btn-primary" onclick="window.open('/', '_blank')">
+                🏠 허브로 이동
+            </button>
+        </div>
+    </div>
+    
+    <!-- QR 코드 생성 라이브러리 -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+    
+    <script>
+        // 전역 변수
+        let ws = null;
+        let startTime = Date.now();
+        let logCount = 0;
+        const maxLogs = 100;
+        
+        /**
+         * WebSocket 연결 초기화
+         */
+        function initWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}`;
+            
+            ws = new WebSocket(wsUrl);
+            
+            ws.onopen = () => {
+                addLog('WebSocket 연결이 설정되었습니다.', 'success');
+                
+                // 관리자 클라이언트임을 서버에 알림
+                ws.send(JSON.stringify({
+                    type: 'admin_connect',
+                    timestamp: Date.now()
+                }));
+                
+                startStatusUpdates();
+            };
+            
+            ws.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    handleServerMessage(data);
+                } catch (error) {
+                    addLog(`메시지 파싱 오류: ${error.message}`, 'error');
+                }
+            };
+            
+            ws.onclose = () => {
+                addLog('WebSocket 연결이 종료되었습니다.', 'warning');
+                updateServerStatus(false);
+                
+                // 3초 후 재연결 시도
+                setTimeout(initWebSocket, 3000);
+            };
+            
+            ws.onerror = (error) => {
+                addLog(`WebSocket 오류: ${error.message || '연결 오류'}`, 'error');
+            };
+        }
+        
+        /**
+         * 서버 메시지 처리
+         */
+        function handleServerMessage(data) {
+            switch (data.type) {
+                case 'admin_status':
+                    updateDashboard(data.status);
+                    break;
+                case 'client_connected':
+                    addLog(`클라이언트 연결: ${data.clientId} (${data.clientType})`, 'success');
+                    break;
+                case 'client_disconnected':
+                    addLog(`클라이언트 연결 해제: ${data.clientId}`, 'warning');
+                    break;
+                case 'room_created':
+                    addLog(`룸 생성: ${data.roomName} (${data.roomId})`, 'info');
+                    break;
+                case 'room_deleted':
+                    addLog(`룸 삭제: ${data.roomId}`, 'warning');
+                    break;
+                case 'session_created':
+                    addLog(`세션 생성: ${data.sessionCode}`, 'info');
+                    break;
+                case 'session_matched':
+                    addLog(`세션 매칭: ${data.sessionCode}`, 'success');
+                    break;
+                case 'error':
+                    addLog(`서버 오류: ${data.message}`, 'error');
+                    break;
+            }
+        }
+        
+        /**
+         * 대시보드 업데이트
+         */
+        function updateDashboard(status) {
+            // 서버 상태
+            updateElement('uptime', formatUptime(status.uptime));
+            updateElement('memoryUsage', formatMemory(status.memory));
+            updateElement('cpuUsage', `${status.cpu}%`);
+            updateElement('totalConnections', status.totalConnections);
+            
+            // 세션 통계
+            updateElement('activeSessions', status.sessions.active);
+            updateElement('connectedSensors', status.sensors.connected);
+            updateElement('todaySessions', status.sessions.today);
+            updateElement('avgLatency', `${status.avgLatency} ms`);
+            
+            // 클라이언트 목록
+            updateClientList(status.clients);
+            
+            // 룸 목록
+            updateRoomList(status.rooms);
+            
+            updateServerStatus(true);
+        }
+        
+        /**
+         * 클라이언트 목록 업데이트
+         */
+        function updateClientList(clients) {
+            const clientList = document.getElementById('clientList');
+            const clientCount = document.getElementById('clientCount');
+            
+            clientCount.textContent = clients.length;
+            
+            if (clients.length === 0) {
+                clientList.innerHTML = `
+                    <div style="text-align: center; color: var(--text-secondary); padding: 2rem;">
+                        연결된 클라이언트가 없습니다
+                    </div>
+                `;
+                return;
+            }
+            
+            clientList.innerHTML = clients.map(client => `
+                <div class="client-item">
+                    <div class="client-info">
+                        <div class="client-id">${client.id}</div>
+                        <div class="client-details">
+                            ${client.type} | ${client.userAgent || 'Unknown'} | 
+                            연결시간: ${formatDuration(client.connectedTime)}
+                        </div>
+                    </div>
+                    <div class="client-status">
+                        <div class="latency">${client.latency}ms</div>
+                        <div class="status-indicator ${getStatusClass(client.latency)}"></div>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        /**
+         * 룸 목록 업데이트
+         */
+        function updateRoomList(rooms) {
+            const roomList = document.getElementById('roomList');
+            const roomCount = document.getElementById('roomCount');
+            
+            roomCount.textContent = rooms.length;
+            
+            if (rooms.length === 0) {
+                roomList.innerHTML = `
+                    <div style="text-align: center; color: var(--text-secondary); padding: 2rem;">
+                        생성된 룸이 없습니다
+                    </div>
+                `;
+                return;
+            }
+            
+            roomList.innerHTML = rooms.map(room => `
+                <div class="room-item">
+                    <div class="room-header">
+                        <div class="room-name">${room.name}</div>
+                        <div class="room-players">${room.players.length}/${room.maxPlayers}</div>
+                    </div>
+                    <div class="player-list">
+                        ${room.players.map(player => `
+                            <span class="player-tag ${player.isHost ? 'host-tag' : ''}">
+                                ${player.nickname} ${player.isHost ? '👑' : ''}
+                            </span>
+                        `).join('')}
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        /**
+         * 서버 상태 표시 업데이트
+         */
+        function updateServerStatus(isOnline) {
+            const statusIndicator = document.getElementById('serverStatus');
+            statusIndicator.className = `status-indicator ${isOnline ? 'status-online' : 'status-offline'}`;
+        }
+        
+        /**
+         * 정기적인 상태 업데이트 시작
+         */
+        function startStatusUpdates() {
+            // 5초마다 상태 요청
+            setInterval(() => {
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    ws.send(JSON.stringify({
+                        type: 'admin_status_request',
+                        timestamp: Date.now()
+                    }));
+                }
+            }, 5000);
+        }
+        
+        /**
+         * QR 코드 생성
+         */
+        function generateQRCode() {
+            const sensorUrl = `${window.location.origin}/sensor`;
+            document.getElementById('sensorUrl').textContent = sensorUrl;
+            
+            QRCode.toCanvas(document.createElement('canvas'), sensorUrl, {
+                width: 200,
+                height: 200,
+                colorDark: '#1e293b',
+                colorLight: '#ffffff',
+                margin: 2
+            }, (error, canvas) => {
+                if (error) {
+                    addLog(`QR 코드 생성 오류: ${error.message}`, 'error');
+                    return;
+                }
+                
+                const qrContainer = document.getElementById('qrCode');
+                qrContainer.innerHTML = '';
+                qrContainer.appendChild(canvas);
+            });
+        }
+        
+        /**
+         * 로그 추가
+         */
+        function addLog(message, type = 'info') {
+            const logsContainer = document.getElementById('systemLogs');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            
+            logEntry.className = `log-entry log-${type}`;
+            logEntry.textContent = `[${timestamp}] ${message}`;
+            
+            logsContainer.appendChild(logEntry);
+            
+            // 로그 개수 제한
+            logCount++;
+            if (logCount > maxLogs) {
+                logsContainer.removeChild(logsContainer.firstChild);
+                logCount--;
+            }
+            
+            // 스크롤을 아래로
+            logsContainer.scrollTop = logsContainer.scrollHeight;
+        }
+        
+        /**
+         * 유틸리티 함수들
+         */
+        function updateElement(id, value) {
+            const element = document.getElementById(id);
+            if (element) {
+                element.textContent = value;
+            }
+        }
+        
+        function formatUptime(uptimeMs) {
+            const seconds = Math.floor(uptimeMs / 1000);
+            const minutes = Math.floor(seconds / 60);
+            const hours = Math.floor(minutes / 60);
+            const days = Math.floor(hours / 24);
+            
+            if (days > 0) return `${days}일 ${hours % 24}시간`;
+            if (hours > 0) return `${hours}시간 ${minutes % 60}분`;
+            if (minutes > 0) return `${minutes}분 ${seconds % 60}초`;
+            return `${seconds}초`;
+        }
+        
+        function formatMemory(memoryBytes) {
+            const mb = memoryBytes / (1024 * 1024);
+            return `${mb.toFixed(1)} MB`;
+        }
+        
+        function formatDuration(ms) {
+            const seconds = Math.floor(ms / 1000);
+            const minutes = Math.floor(seconds / 60);
+            if (minutes > 0) return `${minutes}분`;
+            return `${seconds}초`;
+        }
+        
+        function getStatusClass(latency) {
+            if (latency < 100) return 'status-online';
+            if (latency < 300) return 'status-warning';
+            return 'status-offline';
+        }
+        
+        /**
+         * 제어 함수들
+         */
+        function refreshData() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({
+                    type: 'admin_status_request',
+                    timestamp: Date.now()
+                }));
+                addLog('데이터를 새로고침했습니다.', 'info');
+            }
+        }
+        
+        function clearLogs() {
+            document.getElementById('systemLogs').innerHTML = '';
+            logCount = 0;
+            addLog('로그가 지워졌습니다.', 'info');
+        }
+        
+        function disconnectAllClients() {
+            if (confirm('모든 클라이언트 연결을 해제하시겠습니까?')) {
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    ws.send(JSON.stringify({
+                        type: 'admin_disconnect_all',
+                        timestamp: Date.now()
+                    }));
+                    addLog('모든 클라이언트 연결 해제 요청을 전송했습니다.', 'warning');
+                }
+            }
+        }
+        
+        /**
+         * 페이지 로드 시 초기화
+         */
+        document.addEventListener('DOMContentLoaded', () => {
+            generateQRCode();
+            initWebSocket();
+            addLog('관리자 대시보드를 시작합니다.', 'info');
+        });
+        
+        // 페이지 언로드 시 정리
+        window.addEventListener('beforeunload', () => {
+            if (ws) {
+                ws.close();
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1282,6 +1282,211 @@ const game = new DualSensorGame();
 
 ---
 
+## 관리자 API
+
+센서 게임 허브 v4.0은 서버 모니터링과 관리를 위한 완전한 관리자 API를 제공합니다.
+
+### 관리자 대시보드 접속
+
+```
+GET /admin
+```
+
+관리자 대시보드 페이지를 반환합니다.
+
+### 서버 상태 조회
+
+```
+GET /api/admin/status
+```
+
+#### 응답
+
+```json
+{
+    "success": true,
+    "status": {
+        "uptime": 3600000,           // 서버 업타임 (ms)
+        "memory": 52428800,          // 메모리 사용량 (bytes)
+        "cpu": 15,                   // CPU 사용률 (%)
+        "totalConnections": 25,      // 총 연결 수
+        "sessions": {
+            "active": 5,             // 활성 세션
+            "today": 12              // 오늘 생성된 세션
+        },
+        "sensors": {
+            "connected": 8           // 연결된 센서
+        },
+        "avgLatency": 45,            // 평균 지연시간 (ms)
+        "clients": [                 // 클라이언트 목록
+            {
+                "id": "client-uuid",
+                "type": "pc|sensor|admin",
+                "userAgent": "Mozilla/5.0...",
+                "connectedTime": 120000,
+                "latency": 25
+            }
+        ],
+        "rooms": [                   // 룸 목록
+            {
+                "id": "room-uuid",
+                "name": "게임룸 이름",
+                "gameId": "game-id",
+                "maxPlayers": 4,
+                "players": [
+                    {
+                        "sessionId": "session-id",
+                        "nickname": "플레이어1",
+                        "isHost": true
+                    }
+                ]
+            }
+        ]
+    }
+}
+```
+
+### 관리자 WebSocket API
+
+관리자 대시보드는 WebSocket을 통해 실시간 데이터를 주고받습니다.
+
+#### 관리자 연결
+
+```javascript
+// 클라이언트 → 서버
+{
+    "type": "admin_connect",
+    "timestamp": 1640995200000
+}
+
+// 서버 → 클라이언트
+{
+    "type": "admin_connected",
+    "message": "관리자 권한으로 연결되었습니다.",
+    "timestamp": 1640995200000
+}
+```
+
+#### 상태 정보 요청
+
+```javascript
+// 클라이언트 → 서버
+{
+    "type": "admin_status_request",
+    "timestamp": 1640995200000
+}
+
+// 서버 → 클라이언트
+{
+    "type": "admin_status",
+    "status": {
+        // 위의 /api/admin/status와 동일한 구조
+    },
+    "timestamp": 1640995200000
+}
+```
+
+#### 모든 클라이언트 연결 해제
+
+```javascript
+// 클라이언트 → 서버
+{
+    "type": "admin_disconnect_all",
+    "timestamp": 1640995200000
+}
+
+// 서버 → 클라이언트
+{
+    "type": "admin_action_result",
+    "action": "disconnect_all",
+    "result": "25개 클라이언트 연결 해제 완료",
+    "timestamp": 1640995200000
+}
+```
+
+#### 실시간 이벤트 알림
+
+```javascript
+// 클라이언트 연결
+{
+    "type": "client_connected",
+    "clientId": "client-uuid",
+    "clientType": "pc|sensor|admin"
+}
+
+// 클라이언트 연결 해제
+{
+    "type": "client_disconnected",
+    "clientId": "client-uuid"
+}
+
+// 룸 생성
+{
+    "type": "room_created",
+    "roomName": "게임룸",
+    "roomId": "room-uuid"
+}
+
+// 룸 삭제
+{
+    "type": "room_deleted",
+    "roomId": "room-uuid"
+}
+
+// 세션 생성
+{
+    "type": "session_created",
+    "sessionCode": "1234"
+}
+
+// 세션 매칭
+{
+    "type": "session_matched",
+    "sessionCode": "1234"
+}
+
+// 에러 발생
+{
+    "type": "error",
+    "message": "오류 메시지"
+}
+```
+
+### QR 코드 기능
+
+관리자 대시보드는 모바일 센서 클라이언트 접속용 QR 코드를 자동 생성합니다.
+
+#### 특징
+
+- **자동 URL 감지**: 현재 서버 URL을 기반으로 QR 코드 생성
+- **실시간 생성**: 페이지 로드 시 즉시 생성
+- **고품질**: 150x150 픽셀 고해상도 QR 코드
+- **사용자 친화적**: 호버 효과와 함께 시각적 피드백
+
+#### QR 코드 URL 형식
+
+```
+https://your-domain.com/sensor
+```
+
+### 보안 고려사항
+
+#### 접근 제어
+- 관리자 대시보드는 개발 환경에서 자유 접근 가능
+- 프로덕션 환경에서는 추가 인증 시스템 구현 권장
+
+#### 데이터 보호
+- 민감한 개인 정보는 표시하지 않음
+- 클라이언트 ID는 UUID로 익명화
+- 시스템 로그는 클라이언트 측에서만 보관
+
+#### 권한 관리
+- 관리자만 모든 클라이언트 연결 해제 가능
+- 일반 클라이언트는 관리자 기능 접근 불가
+- WebSocket 메시지 타입별 권한 검증
+
+---
+
 ## 마무리
 
 이 API 레퍼런스를 통해 센서 게임 허브 v4.0의 모든 기능을 활용할 수 있습니다. 

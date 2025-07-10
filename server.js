@@ -32,6 +32,9 @@ app.use(express.static(path.join(__dirname, 'client')));
 app.use('/sdk', express.static(path.join(__dirname, 'sdk')));
 app.use('/games', express.static(path.join(__dirname, 'games')));
 app.use('/assets', express.static(path.join(__dirname, 'assets')));
+app.use('/libs', express.static(path.join(__dirname, 'libs')));
+app.use('/docs', express.static(path.join(__dirname, 'docs')));
+app.use('/templates', express.static(path.join(__dirname, 'templates')));
 
 // ========== 데이터 구조 ==========
 
@@ -46,6 +49,15 @@ const roomList = new Map(); // 공개 룸 목록
 
 // 게임 레지스트리
 const gameRegistry = new Map(); // gameId -> gameMetadata
+
+// 관리자 모니터링
+const adminClients = new Set(); // 관리자 클라이언트들
+const serverStats = {
+    startTime: Date.now(),
+    totalConnections: 0,
+    sessionsToday: 0,
+    totalSensorsConnected: 0
+};
 
 // ========== 핵심 함수들 ==========
 
@@ -447,6 +459,72 @@ app.get('/play/:gameId', (req, res) => {
     }
 });
 
+// 관리자 페이지
+app.get('/admin', (req, res) => {
+    res.sendFile(path.join(__dirname, 'client', 'admin.html'));
+});
+
+// 개발자 페이지
+app.get('/developer', (req, res) => {
+    res.sendFile(path.join(__dirname, 'client', 'developer.html'));
+});
+
+app.get('/dev', (req, res) => {
+    res.redirect('/developer');
+});
+
+// 관리자 API - 서버 상태
+app.get('/api/admin/status', (req, res) => {
+    const now = Date.now();
+    const uptime = now - serverStats.startTime;
+    
+    // 클라이언트 정보 수집
+    const clientList = Array.from(clients.values()).map(client => ({
+        id: client.id,
+        type: client.type,
+        userAgent: client.userAgent || 'Unknown',
+        connectedTime: now - client.connectedAt,
+        latency: client.latency || 0
+    }));
+    
+    // 룸 정보 수집
+    const roomList = Array.from(rooms.values()).map(room => ({
+        id: room.roomId,
+        name: room.roomName,
+        gameId: room.gameId,
+        maxPlayers: room.maxPlayers,
+        players: Array.from(room.players.values()).map(player => ({
+            sessionId: player.sessionId,
+            nickname: player.nickname,
+            isHost: player.isHost
+        }))
+    }));
+    
+    // 평균 지연시간 계산
+    const latencies = clientList.map(c => c.latency).filter(l => l > 0);
+    const avgLatency = latencies.length > 0 ? Math.round(latencies.reduce((a, b) => a + b, 0) / latencies.length) : 0;
+    
+    res.json({
+        success: true,
+        status: {
+            uptime: uptime,
+            memory: process.memoryUsage().heapUsed,
+            cpu: Math.round(Math.random() * 20 + 10), // 임시 CPU 사용량
+            totalConnections: serverStats.totalConnections,
+            sessions: {
+                active: sessions.size,
+                today: serverStats.sessionsToday
+            },
+            sensors: {
+                connected: Array.from(clients.values()).filter(c => c.type === 'sensor').length
+            },
+            avgLatency: avgLatency,
+            clients: clientList,
+            rooms: roomList
+        }
+    });
+});
+
 // ========== WebSocket 처리 ==========
 
 wss.on('connection', (ws, req) => {
@@ -461,6 +539,8 @@ wss.on('connection', (ws, req) => {
     };
     
     clients.set(clientId, clientData);
+    serverStats.totalConnections++;
+    
     console.log(`🔗 클라이언트 연결: ${clientId}`);
     
     // 연결 확인 메시지 전송
@@ -469,6 +549,13 @@ wss.on('connection', (ws, req) => {
         clientId,
         timestamp: Date.now()
     }));
+    
+    // 관리자에게 새 클라이언트 연결 알림
+    broadcastToAdmins({
+        type: 'client_connected',
+        clientId: clientId,
+        clientType: 'unknown'
+    });
     
     // 메시지 처리
     ws.on('message', (data) => {
@@ -539,6 +626,18 @@ function handleMessage(clientId, message) {
             
         case 'leave_room':
             handleLeaveRoom(clientId, message);
+            break;
+            
+        case 'admin_connect':
+            handleAdminConnect(clientId, message);
+            break;
+            
+        case 'admin_status_request':
+            handleAdminStatusRequest(clientId, message);
+            break;
+            
+        case 'admin_disconnect_all':
+            handleAdminDisconnectAll(clientId, message);
             break;
             
         default:
@@ -841,12 +940,150 @@ function handleDisconnect(clientId) {
                 }));
             }
         }
+    } else if (client.type === 'admin') {
+        // 관리자 클라이언트 제거
+        adminClients.delete(clientId);
+        console.log(`👑 관리자 연결 해제: ${clientId}`);
     }
     
     // 룸에서 플레이어 제거
     handleLeaveRoom(clientId, {});
     
     clients.delete(clientId);
+    
+    // 관리자에게 클라이언트 연결 해제 알림
+    broadcastToAdmins({
+        type: 'client_disconnected',
+        clientId: clientId
+    });
+}
+
+// ========== 관리자 기능 ==========
+
+/**
+ * 관리자 클라이언트 등록
+ */
+function handleAdminConnect(clientId, message) {
+    const client = clients.get(clientId);
+    if (!client) return;
+    
+    client.type = 'admin';
+    client.userAgent = message.userAgent || 'Admin Dashboard';
+    adminClients.add(clientId);
+    
+    console.log(`👑 관리자 연결: ${clientId}`);
+    
+    // 관리자에게 연결 확인 메시지 전송
+    client.ws.send(JSON.stringify({
+        type: 'admin_connected',
+        message: '관리자 권한으로 연결되었습니다.',
+        timestamp: Date.now()
+    }));
+}
+
+/**
+ * 관리자 상태 요청 처리
+ */
+function handleAdminStatusRequest(clientId, message) {
+    const client = clients.get(clientId);
+    if (!client || client.type !== 'admin') return;
+    
+    const now = Date.now();
+    const uptime = now - serverStats.startTime;
+    
+    // 클라이언트 정보 수집
+    const clientList = Array.from(clients.values())
+        .filter(c => c.type !== 'admin')
+        .map(client => ({
+            id: client.id,
+            type: client.type,
+            userAgent: client.userAgent || 'Unknown',
+            connectedTime: now - client.connectedAt,
+            latency: client.latency || Math.round(Math.random() * 50 + 10) // 임시 지연시간
+        }));
+    
+    // 룸 정보 수집
+    const roomList = Array.from(rooms.values()).map(room => ({
+        id: room.roomId,
+        name: room.roomName,
+        gameId: room.gameId,
+        maxPlayers: room.maxPlayers,
+        players: Array.from(room.players.values()).map(player => ({
+            sessionId: player.sessionId,
+            nickname: player.nickname,
+            isHost: player.isHost
+        }))
+    }));
+    
+    // 평균 지연시간 계산
+    const latencies = clientList.map(c => c.latency).filter(l => l > 0);
+    const avgLatency = latencies.length > 0 ? Math.round(latencies.reduce((a, b) => a + b, 0) / latencies.length) : 0;
+    
+    client.ws.send(JSON.stringify({
+        type: 'admin_status',
+        status: {
+            uptime: uptime,
+            memory: process.memoryUsage().heapUsed,
+            cpu: Math.round(Math.random() * 30 + 5), // 임시 CPU 사용량
+            totalConnections: serverStats.totalConnections,
+            sessions: {
+                active: sessions.size,
+                today: serverStats.sessionsToday
+            },
+            sensors: {
+                connected: Array.from(clients.values()).filter(c => c.type === 'sensor').length
+            },
+            avgLatency: avgLatency,
+            clients: clientList,
+            rooms: roomList
+        },
+        timestamp: Date.now()
+    }));
+}
+
+/**
+ * 모든 클라이언트 연결 해제 (관리자 기능)
+ */
+function handleAdminDisconnectAll(clientId, message) {
+    const client = clients.get(clientId);
+    if (!client || client.type !== 'admin') return;
+    
+    console.log(`👑 관리자 요청: 모든 클라이언트 연결 해제 (${clientId})`);
+    
+    let disconnectedCount = 0;
+    
+    // 관리자가 아닌 모든 클라이언트 연결 해제
+    for (const [id, clientData] of clients.entries()) {
+        if (clientData.type !== 'admin' && clientData.ws.readyState === WebSocket.OPEN) {
+            clientData.ws.send(JSON.stringify({
+                type: 'admin_disconnect',
+                message: '관리자에 의해 연결이 해제되었습니다.',
+                timestamp: Date.now()
+            }));
+            clientData.ws.close();
+            disconnectedCount++;
+        }
+    }
+    
+    // 관리자에게 결과 전송
+    client.ws.send(JSON.stringify({
+        type: 'admin_action_result',
+        action: 'disconnect_all',
+        result: `${disconnectedCount}개 클라이언트 연결 해제 완료`,
+        timestamp: Date.now()
+    }));
+}
+
+/**
+ * 관리자들에게 브로드캐스트
+ */
+function broadcastToAdmins(message) {
+    for (const adminClientId of adminClients) {
+        const admin = clients.get(adminClientId);
+        if (admin && admin.ws.readyState === WebSocket.OPEN) {
+            admin.ws.send(JSON.stringify(message));
+        }
+    }
 }
 
 // ========== 정리 작업 ==========

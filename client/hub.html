@@ -68,6 +68,33 @@
             background-clip: text;
         }
         
+        .header-nav {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+        }
+        
+        .nav-links {
+            display: flex;
+            gap: 1.5rem;
+            align-items: center;
+        }
+        
+        .nav-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 0.9rem;
+            transition: color 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .nav-link:hover {
+            color: var(--primary);
+        }
+        
         .connection-status {
             display: flex;
             align-items: center;
@@ -167,6 +194,36 @@
         .sensor-card h4 {
             color: var(--primary);
             margin-bottom: 0.5rem;
+        }
+        
+        /* QR 코드 스타일 */
+        .qr-card {
+            text-align: center;
+        }
+        
+        .qr-code-container {
+            margin-top: 1rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .qr-code {
+            display: inline-block;
+            padding: 1rem;
+            background: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            transition: transform 0.2s ease;
+        }
+        
+        .qr-code:hover {
+            transform: scale(1.05);
+        }
+        
+        .qr-code canvas {
+            display: block;
+            border-radius: 0.25rem;
         }
         
         /* 게임 섹션 */
@@ -483,6 +540,15 @@
                 grid-template-columns: 1fr;
             }
             
+            .header-nav {
+                flex-direction: column;
+                gap: 1rem;
+            }
+            
+            .nav-links {
+                gap: 1rem;
+            }
+            
             .connection-status {
                 flex-direction: column;
                 gap: 0.5rem;
@@ -501,14 +567,26 @@
             <div class="logo">
                 🎮 센서 게임 허브 v4.0
             </div>
-            <div class="connection-status">
-                <div class="status-indicator status-disconnected" id="serverStatus">
-                    <span>⚡</span>
-                    <span>서버 연결 중...</span>
-                </div>
-                <div class="status-indicator status-waiting" id="sensorStatus">
-                    <span>📱</span>
-                    <span>센서 대기 중</span>
+            <div class="header-nav">
+                <nav class="nav-links">
+                    <a href="/developer" class="nav-link">
+                        <span>🛠️</span>
+                        <span>개발자</span>
+                    </a>
+                    <a href="/admin" class="nav-link">
+                        <span>⚙️</span>
+                        <span>관리자</span>
+                    </a>
+                </nav>
+                <div class="connection-status">
+                    <div class="status-indicator status-disconnected" id="serverStatus">
+                        <span>⚡</span>
+                        <span>서버 연결 중...</span>
+                    </div>
+                    <div class="status-indicator status-waiting" id="sensorStatus">
+                        <span>📱</span>
+                        <span>센서 대기 중</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -535,6 +613,13 @@
                     <h4>📱 모바일 접속</h4>
                     <p>같은 네트워크에서 모바일로 접속:</p>
                     <code id="sensorUrl">센서 URL 로딩 중...</code>
+                </div>
+                <div class="sensor-card qr-card">
+                    <h4>📷 QR 코드 스캔</h4>
+                    <p>QR 코드를 스캔하여 바로 접속:</p>
+                    <div class="qr-code-container" id="qrCodeContainer">
+                        <div class="qr-code" id="qrCode">QR 코드 생성 중...</div>
+                    </div>
                 </div>
                 <div class="sensor-card">
                     <h4>🎯 센서 상태</h4>
@@ -1044,11 +1129,43 @@
             }, 3000);
         }
 
+        // QR 코드 생성
+        function generateQRCode() {
+            const sensorUrl = `${window.location.origin}/sensor`;
+            
+            QRCode.toCanvas(document.createElement('canvas'), sensorUrl, {
+                width: 150,
+                height: 150,
+                colorDark: '#1e293b',
+                colorLight: '#ffffff',
+                margin: 2
+            }, (error, canvas) => {
+                if (error) {
+                    console.error('QR 코드 생성 오류:', error);
+                    document.getElementById('qrCode').textContent = 'QR 코드 생성 실패';
+                    return;
+                }
+                
+                const qrContainer = document.getElementById('qrCode');
+                qrContainer.innerHTML = '';
+                qrContainer.appendChild(canvas);
+            });
+        }
+
         // 모달 외부 클릭 시 닫기
         document.addEventListener('click', (e) => {
             if (e.target.classList.contains('modal')) {
                 e.target.classList.remove('show');
             }
+        });
+        
+        // QR 코드 초기화
+        document.addEventListener('DOMContentLoaded', () => {
+            // QR 코드 라이브러리 로드 후 생성
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js';
+            script.onload = generateQRCode;
+            document.head.appendChild(script);
         });
     </script>
 </body>

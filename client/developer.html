@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🛠️ 센서 게임 허브 v4.0 - 개발자 센터</title>
+    <style>
+        :root {
+            --primary: #6366f1;
+            --secondary: #ec4899;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --error: #ef4444;
+            --background: #0f172a;
+            --surface: #1e293b;
+            --card: #334155;
+            --text-primary: #f8fafc;
+            --text-secondary: #cbd5e1;
+            --border: #475569;
+            --accent: #7c3aed;
+            --gradient: linear-gradient(135deg, var(--primary), var(--secondary));
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, var(--background), #1e1b4b);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+        
+        /* 헤더 */
+        .header {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+        }
+        
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+        }
+        
+        .nav-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: color 0.2s ease;
+            font-weight: 500;
+        }
+        
+        .nav-link:hover {
+            color: var(--primary);
+        }
+        
+        /* 메인 컨테이너 */
+        .main-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        /* 히어로 섹션 */
+        .hero-section {
+            text-align: center;
+            padding: 4rem 0;
+            background: var(--surface);
+            border-radius: 1rem;
+            margin-bottom: 3rem;
+            border: 1px solid var(--border);
+        }
+        
+        .hero-title {
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .hero-subtitle {
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+            margin-bottom: 2rem;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        .hero-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        /* 버튼 스타일 */
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+        }
+        
+        .btn-primary {
+            background: var(--gradient);
+            color: white;
+        }
+        
+        .btn-secondary {
+            background: var(--card);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        }
+        
+        /* 섹션 그리드 */
+        .sections-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+        
+        .section-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 1rem;
+            padding: 2rem;
+            transition: all 0.3s ease;
+        }
+        
+        .section-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 35px rgba(0, 0, 0, 0.3);
+            border-color: var(--primary);
+        }
+        
+        .section-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+        
+        .section-icon {
+            font-size: 2rem;
+            margin-right: 1rem;
+        }
+        
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--primary);
+        }
+        
+        .section-description {
+            color: var(--text-secondary);
+            margin-bottom: 1.5rem;
+            line-height: 1.6;
+        }
+        
+        .section-links {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        
+        .doc-link {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.75rem 1rem;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            text-decoration: none;
+            color: var(--text-primary);
+            transition: all 0.2s ease;
+        }
+        
+        .doc-link:hover {
+            background: var(--border);
+            border-color: var(--primary);
+        }
+        
+        .doc-info {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        
+        .doc-icon {
+            font-size: 1.2rem;
+        }
+        
+        .doc-details {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .doc-name {
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+        
+        .doc-desc {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+        
+        .doc-size {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            font-family: 'Courier New', monospace;
+        }
+        
+        /* 빠른 시작 섹션 */
+        .quick-start {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 1rem;
+            padding: 2rem;
+            margin-bottom: 3rem;
+        }
+        
+        .quick-start-title {
+            font-size: 1.8rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        
+        .code-block {
+            background: var(--background);
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            margin: 1rem 0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            overflow-x: auto;
+            position: relative;
+        }
+        
+        .copy-btn {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 0.25rem;
+            padding: 0.25rem 0.5rem;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .copy-btn:hover {
+            background: var(--border);
+            color: var(--text-primary);
+        }
+        
+        /* 라이브러리 섹션 */
+        .libraries-section {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 1rem;
+            padding: 2rem;
+            margin-bottom: 3rem;
+        }
+        
+        .library-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            margin: 0.75rem 0;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            transition: all 0.2s ease;
+        }
+        
+        .library-item:hover {
+            border-color: var(--primary);
+            background: rgba(99, 102, 241, 0.05);
+        }
+        
+        .library-info {
+            flex: 1;
+        }
+        
+        .library-name {
+            font-weight: 600;
+            font-size: 1.1rem;
+            margin-bottom: 0.25rem;
+        }
+        
+        .library-desc {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+        
+        .library-path {
+            font-family: 'Courier New', monospace;
+            font-size: 0.8rem;
+            color: var(--accent);
+            margin-top: 0.25rem;
+        }
+        
+        /* 푸터 */
+        .footer {
+            text-align: center;
+            padding: 2rem 0;
+            border-top: 1px solid var(--border);
+            color: var(--text-secondary);
+            margin-top: 3rem;
+        }
+        
+        /* 반응형 */
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                gap: 1rem;
+                padding: 0 1rem;
+            }
+            
+            .nav-links {
+                gap: 1rem;
+            }
+            
+            .main-container {
+                padding: 1rem;
+            }
+            
+            .hero-title {
+                font-size: 2rem;
+            }
+            
+            .hero-subtitle {
+                font-size: 1rem;
+            }
+            
+            .sections-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+            
+            .hero-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .btn {
+                width: 100%;
+                max-width: 280px;
+                justify-content: center;
+            }
+        }
+        
+        /* 스크롤바 스타일 */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: var(--surface);
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--secondary);
+        }
+    </style>
+</head>
+<body>
+    <!-- 헤더 -->
+    <header class="header">
+        <div class="header-content">
+            <div class="logo">
+                🛠️ 개발자 센터
+            </div>
+            <nav class="nav-links">
+                <a href="/" class="nav-link">🏠 허브</a>
+                <a href="/admin" class="nav-link">⚙️ 관리자</a>
+                <a href="https://github.com/cmhblue1225/sensor-game-hub-v4" class="nav-link" target="_blank">📂 GitHub</a>
+            </nav>
+        </div>
+    </header>
+
+    <!-- 메인 컨테이너 -->
+    <main class="main-container">
+        <!-- 히어로 섹션 -->
+        <section class="hero-section">
+            <h1 class="hero-title">🚀 센서 게임 개발</h1>
+            <p class="hero-subtitle">
+                모바일 센서를 활용한 혁신적인 웹 게임을 개발하기 위한 
+                완전한 도구와 문서를 제공합니다.
+            </p>
+            <div class="hero-buttons">
+                <a href="#quick-start" class="btn btn-primary">
+                    ⚡ 빠른 시작
+                </a>
+                <a href="#documentation" class="btn btn-secondary">
+                    📚 문서 보기
+                </a>
+                <a href="/play/solo-template" class="btn btn-secondary" target="_blank">
+                    🎮 템플릿 체험
+                </a>
+            </div>
+        </section>
+
+        <!-- 빠른 시작 -->
+        <section id="quick-start" class="quick-start">
+            <h2 class="quick-start-title">
+                ⚡ 빠른 시작
+            </h2>
+            <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">
+                5분 만에 첫 번째 센서 게임을 만들어보세요.
+            </p>
+            
+            <div style="margin-bottom: 1.5rem;">
+                <h3 style="color: var(--primary); margin-bottom: 0.5rem;">1. 템플릿 복사</h3>
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyCode(this)">복사</button>
+# 솔로 게임 템플릿 복사
+cp -r templates/solo-template games/my-first-game
+
+# 또는 멀티플레이어 게임 템플릿 복사
+cp -r templates/multiplayer-template games/my-multiplayer-game
+                </div>
+            </div>
+            
+            <div style="margin-bottom: 1.5rem;">
+                <h3 style="color: var(--primary); margin-bottom: 0.5rem;">2. 게임 메타데이터 수정</h3>
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyCode(this)">복사</button>
+{
+    "id": "my-first-game",
+    "name": "🎯 내 첫 번째 게임",
+    "description": "센서를 활용한 멋진 게임입니다.",
+    "gameType": "solo",
+    "category": "action",
+    "sensorTypes": ["orientation", "accelerometer"]
+}
+                </div>
+            </div>
+            
+            <div>
+                <h3 style="color: var(--primary); margin-bottom: 0.5rem;">3. 센서 입력 처리</h3>
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyCode(this)">복사</button>
+class MyGame extends SensorGameSDK {
+    handleSensorInput(data) {
+        const { gameInput } = data;
+        
+        // 기울기로 플레이어 이동
+        if (gameInput.tilt) {
+            this.player.x += gameInput.tilt.x * 5;
+            this.player.y += gameInput.tilt.y * 5;
+        }
+        
+        // 흔들기로 액션 실행
+        if (gameInput.shake && gameInput.shake.detected) {
+            this.fireWeapon();
+        }
+    }
+}
+                </div>
+            </div>
+        </section>
+
+        <!-- 문서 및 라이브러리 섹션 -->
+        <div class="sections-grid" id="documentation">
+            <!-- 개발 문서 -->
+            <div class="section-card">
+                <div class="section-header">
+                    <div class="section-icon">📚</div>
+                    <div class="section-title">개발 문서</div>
+                </div>
+                <div class="section-description">
+                    센서 게임 개발을 위한 완전한 가이드와 API 문서를 제공합니다.
+                </div>
+                <div class="section-links">
+                    <a href="/docs/DEVELOPER_GUIDE.md" class="doc-link" target="_blank">
+                        <div class="doc-info">
+                            <div class="doc-icon">👨‍💻</div>
+                            <div class="doc-details">
+                                <div class="doc-name">개발자 가이드</div>
+                                <div class="doc-desc">완전한 게임 개발 방법론</div>
+                            </div>
+                        </div>
+                        <div class="doc-size">~400KB</div>
+                    </a>
+                    <a href="/docs/API_REFERENCE.md" class="doc-link" target="_blank">
+                        <div class="doc-info">
+                            <div class="doc-icon">🔧</div>
+                            <div class="doc-details">
+                                <div class="doc-name">API 레퍼런스</div>
+                                <div class="doc-desc">SDK 및 API 전체 문서</div>
+                            </div>
+                        </div>
+                        <div class="doc-size">~200KB</div>
+                    </a>
+                    <a href="/docs/LLM_GUIDE.md" class="doc-link" target="_blank">
+                        <div class="doc-info">
+                            <div class="doc-icon">🤖</div>
+                            <div class="doc-details">
+                                <div class="doc-name">AI 에이전트 가이드</div>
+                                <div class="doc-desc">Claude Code, Gemini CLI용</div>
+                            </div>
+                        </div>
+                        <div class="doc-size">~150KB</div>
+                    </a>
+                </div>
+            </div>
+
+            <!-- SDK 및 도구 -->
+            <div class="section-card">
+                <div class="section-header">
+                    <div class="section-icon">🛠️</div>
+                    <div class="section-title">SDK 및 도구</div>
+                </div>
+                <div class="section-description">
+                    게임 개발에 필요한 모든 도구와 라이브러리를 제공합니다.
+                </div>
+                <div class="section-links">
+                    <a href="/sdk/sensor-game-sdk.js" class="doc-link" target="_blank">
+                        <div class="doc-info">
+                            <div class="doc-icon">⚙️</div>
+                            <div class="doc-details">
+                                <div class="doc-name">메인 SDK</div>
+                                <div class="doc-desc">센서 게임 개발 핵심 라이브러리</div>
+                            </div>
+                        </div>
+                        <div class="doc-size">~120KB</div>
+                    </a>
+                    <a href="/sdk/utils.js" class="doc-link" target="_blank">
+                        <div class="doc-info">
+                            <div class="doc-icon">🔨</div>
+                            <div class="doc-details">
+                                <div class="doc-name">유틸리티</div>
+                                <div class="doc-desc">수학, 충돌감지, 성능 도구</div>
+                            </div>
+                        </div>
+                        <div class="doc-size">~50KB</div>
+                    </a>
+                    <a href="/libs/cannon-es.js" class="doc-link" target="_blank">
+                        <div class="doc-info">
+                            <div class="doc-icon">🎱</div>
+                            <div class="doc-details">
+                                <div class="doc-name">Cannon-ES 물리엔진</div>
+                                <div class="doc-desc">3D 물리 시뮬레이션 (로컬)</div>
+                            </div>
+                        </div>
+                        <div class="doc-size">~800KB</div>
+                    </a>
+                </div>
+            </div>
+
+            <!-- 게임 템플릿 -->
+            <div class="section-card">
+                <div class="section-header">
+                    <div class="section-icon">🎮</div>
+                    <div class="section-title">게임 템플릿</div>
+                </div>
+                <div class="section-description">
+                    바로 사용할 수 있는 게임 템플릿으로 빠른 개발을 시작하세요.
+                </div>
+                <div class="section-links">
+                    <a href="/templates/solo-template/game.js" class="doc-link" target="_blank">
+                        <div class="doc-info">
+                            <div class="doc-icon">👤</div>
+                            <div class="doc-details">
+                                <div class="doc-name">솔로 게임 템플릿</div>
+                                <div class="doc-desc">1인용 센서 게임 기본 구조</div>
+                            </div>
+                        </div>
+                        <div class="doc-size">~25KB</div>
+                    </a>
+                    <a href="/templates/multiplayer-template/game.js" class="doc-link" target="_blank">
+                        <div class="doc-info">
+                            <div class="doc-icon">👥</div>
+                            <div class="doc-details">
+                                <div class="doc-name">멀티플레이어 템플릿</div>
+                                <div class="doc-desc">다인용 실시간 게임 구조</div>
+                            </div>
+                        </div>
+                        <div class="doc-size">~35KB</div>
+                    </a>
+                    <a href="/play/solo-template" class="doc-link" target="_blank">
+                        <div class="doc-info">
+                            <div class="doc-icon">🚀</div>
+                            <div class="doc-details">
+                                <div class="doc-name">라이브 데모</div>
+                                <div class="doc-desc">템플릿 게임 체험하기</div>
+                            </div>
+                        </div>
+                        <div class="doc-size">데모</div>
+                    </a>
+                </div>
+            </div>
+
+            <!-- 고급 기능 -->
+            <div class="section-card">
+                <div class="section-header">
+                    <div class="section-icon">🌟</div>
+                    <div class="section-title">고급 기능</div>
+                </div>
+                <div class="section-description">
+                    고급 센서 게임 개발을 위한 특별한 기능들을 탐색하세요.
+                </div>
+                <div class="section-links">
+                    <a href="#" class="doc-link" onclick="showFeature('multi-sensor')">
+                        <div class="doc-info">
+                            <div class="doc-icon">📱</div>
+                            <div class="doc-details">
+                                <div class="doc-name">다중 센서 지원</div>
+                                <div class="doc-desc">2개 센서로 양손 게임 개발</div>
+                            </div>
+                        </div>
+                        <div class="doc-size">가이드</div>
+                    </a>
+                    <a href="#" class="doc-link" onclick="showFeature('3d-physics')">
+                        <div class="doc-info">
+                            <div class="doc-icon">🎱</div>
+                            <div class="doc-details">
+                                <div class="doc-name">3D 물리 엔진</div>
+                                <div class="doc-desc">Cannon-ES 통합 가이드</div>
+                            </div>
+                        </div>
+                        <div class="doc-size">예제</div>
+                    </a>
+                    <a href="/admin" class="doc-link" target="_blank">
+                        <div class="doc-info">
+                            <div class="doc-icon">⚙️</div>
+                            <div class="doc-details">
+                                <div class="doc-name">관리자 대시보드</div>
+                                <div class="doc-desc">실시간 모니터링 및 관리</div>
+                            </div>
+                        </div>
+                        <div class="doc-size">도구</div>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 로컬 라이브러리 섹션 -->
+        <section class="libraries-section">
+            <h2 style="color: var(--primary); margin-bottom: 1rem; display: flex; align-items: center; gap: 0.75rem;">
+                📦 로컬 라이브러리
+            </h2>
+            <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">
+                오프라인에서도 사용할 수 있도록 로컬에 포함된 주요 라이브러리들입니다.
+            </p>
+            
+            <div class="library-item">
+                <div class="library-info">
+                    <div class="library-name">🎱 Cannon-ES</div>
+                    <div class="library-desc">JavaScript 3D 물리 엔진 - 충돌 감지, 강체 역학, 제약 조건</div>
+                    <div class="library-path">&lt;script src="/libs/cannon-es.js"&gt;&lt;/script&gt;</div>
+                </div>
+                <div style="text-align: right;">
+                    <div style="color: var(--success); font-weight: 600;">v6.0.0</div>
+                    <div style="color: var(--text-secondary); font-size: 0.8rem;">~800KB</div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- 푸터 -->
+    <footer class="footer">
+        <p>🎮 센서 게임 허브 v4.0 - 혁신적인 센서 게임 개발 플랫폼</p>
+        <p style="margin-top: 0.5rem; font-size: 0.9rem;">
+            MIT License • 
+            <a href="https://github.com/cmhblue1225/sensor-game-hub-v4" style="color: var(--primary);">GitHub</a> • 
+            <a href="/admin" style="color: var(--primary);">관리자</a>
+        </p>
+    </footer>
+
+    <script>
+        /**
+         * 코드 복사 기능
+         */
+        function copyCode(button) {
+            const codeBlock = button.parentElement;
+            const code = codeBlock.textContent.replace('복사', '').trim();
+            
+            navigator.clipboard.writeText(code).then(() => {
+                const originalText = button.textContent;
+                button.textContent = '복사됨!';
+                button.style.background = 'var(--success)';
+                button.style.color = 'white';
+                
+                setTimeout(() => {
+                    button.textContent = originalText;
+                    button.style.background = 'var(--card)';
+                    button.style.color = 'var(--text-secondary)';
+                }, 2000);
+            }).catch(err => {
+                console.error('클립보드 복사 실패:', err);
+                button.textContent = '복사 실패';
+                setTimeout(() => {
+                    button.textContent = '복사';
+                }, 2000);
+            });
+        }
+
+        /**
+         * 고급 기능 표시
+         */
+        function showFeature(feature) {
+            let content = '';
+            
+            switch(feature) {
+                case 'multi-sensor':
+                    content = `
+다중 센서 지원을 통해 양손을 각각 다른 센서로 제어하는 게임을 만들 수 있습니다.
+
+예시: 검과 방패 게임
+- 오른손 센서: 검 조작
+- 왼손 센서: 방패 조작
+
+설정 방법:
+1. SDK 초기화 시 multiSensor: true 설정
+2. 센서 클라이언트에서 "주 센서" 또는 "보조 센서" 선택
+3. handleSensorInput에서 sensorType으로 구분하여 처리
+                    `;
+                    break;
+                case '3d-physics':
+                    content = `
+Cannon-ES 물리 엔진을 사용하여 현실적인 3D 물리 시뮬레이션을 구현할 수 있습니다.
+
+주요 기능:
+- 강체 역학 (Rigid Body Dynamics)
+- 충돌 감지 및 반응
+- 제약 조건 (Constraints)
+- 관절 시스템 (Joints)
+
+사용 방법:
+<script src="/libs/cannon-es.js"></script>
+
+const world = new CANNON.World();
+world.gravity.set(0, -9.82, 0);
+                    `;
+                    break;
+            }
+            
+            alert(content);
+        }
+
+        /**
+         * 스무스 스크롤
+         */
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        /**
+         * 페이지 로드 시 애니메이션
+         */
+        document.addEventListener('DOMContentLoaded', () => {
+            // 섹션 카드들에 순차적 애니메이션 효과
+            const cards = document.querySelectorAll('.section-card');
+            cards.forEach((card, index) => {
+                card.style.opacity = '0';
+                card.style.transform = 'translateY(20px)';
+                
+                setTimeout(() => {
+                    card.style.transition = 'all 0.5s ease';
+                    card.style.opacity = '1';
+                    card.style.transform = 'translateY(0)';
+                }, index * 100);
+            });
+        });
+    </script>
+</body>
+</html>
