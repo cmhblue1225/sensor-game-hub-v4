@@ -628,7 +628,7 @@ class MyGame extends SensorGameSDK {
                         </div>
                         <div class="doc-size">~25KB</div>
                     </a>
-                    <a href="/templates/multiplayer-template/game.js" class="doc-link" target="_blank">
+                    <a href="/templates/multiplayer-template/" class="doc-link" target="_blank">
                         <div class="doc-info">
                             <div class="doc-icon">👥</div>
                             <div class="doc-details">
@@ -760,43 +760,198 @@ class MyGame extends SensorGameSDK {
          * 고급 기능 표시
          */
         function showFeature(feature) {
+            let title = '';
             let content = '';
             
             switch(feature) {
                 case 'multi-sensor':
+                    title = '🔗 다중 센서 지원';
                     content = `
-다중 센서 지원을 통해 양손을 각각 다른 센서로 제어하는 게임을 만들 수 있습니다.
+<h3>다중 센서로 양손 제어 게임 개발</h3>
+<p>두 개의 센서 클라이언트를 사용하여 양손을 각각 제어하는 고급 게임을 만들 수 있습니다.</p>
 
-예시: 검과 방패 게임
-- 오른손 센서: 검 조작
-- 왼손 센서: 방패 조작
+<h4>예시: 검과 방패 게임</h4>
+<ul>
+  <li><strong>오른손 센서:</strong> 검 조작 (공격, 블록)</li>
+  <li><strong>왼손 센서:</strong> 방패 조작 (방어, 반격)</li>
+</ul>
 
-설정 방법:
-1. SDK 초기화 시 multiSensor: true 설정
-2. 센서 클라이언트에서 "주 센서" 또는 "보조 센서" 선택
-3. handleSensorInput에서 sensorType으로 구분하여 처리
+<h4>설정 방법:</h4>
+<pre><code>// SDK 초기화 시
+const game = new SensorGameSDK({
+    gameId: 'dual-sword-game',
+    multiSensor: true,  // 다중 센서 활성화
+    sensorTypes: ['orientation', 'accelerometer']
+});
+
+// 센서 입력 처리
+handleSensorInput(data) {
+    const { gameInput, sensorType } = data;
+    
+    if (sensorType === 'primary') {
+        // 주 센서 (오른손) - 검 조작
+        this.sword.rotate(gameInput.tilt);
+    } else if (sensorType === 'secondary') {
+        // 보조 센서 (왼손) - 방패 조작
+        this.shield.position(gameInput.tilt);
+    }
+}</code></pre>
                     `;
                     break;
                 case '3d-physics':
+                    title = '🎱 3D 물리 엔진 (Cannon-ES)';
                     content = `
-Cannon-ES 물리 엔진을 사용하여 현실적인 3D 물리 시뮬레이션을 구현할 수 있습니다.
+<h3>현실적인 3D 물리 시뮬레이션</h3>
+<p>Cannon-ES 물리 엔진을 사용하여 현실적인 물리 효과를 구현할 수 있습니다.</p>
 
-주요 기능:
-- 강체 역학 (Rigid Body Dynamics)
-- 충돌 감지 및 반응
-- 제약 조건 (Constraints)
-- 관절 시스템 (Joints)
+<h4>주요 기능:</h4>
+<ul>
+  <li><strong>강체 역학:</strong> 질량, 관성, 충돌 반응</li>
+  <li><strong>충돌 감지:</strong> 정확한 충돌 검출 및 반응</li>
+  <li><strong>제약 조건:</strong> 힌지, 스프링, 거리 제약</li>
+  <li><strong>관절 시스템:</strong> 복잡한 연결체 시뮬레이션</li>
+</ul>
 
-사용 방법:
-<script src="/libs/cannon-es.js"></script>
+<h4>기본 사용법:</h4>
+<pre><code>// HTML에 라이브러리 포함
+&lt;script src="/libs/cannon-es.js"&gt;&lt;/script&gt;
 
-const world = new CANNON.World();
-world.gravity.set(0, -9.82, 0);
+// 물리 월드 생성
+const world = new CANNON.World({
+    gravity: new CANNON.Vec3(0, -9.82, 0)
+});
+
+// 강체 생성
+const ballShape = new CANNON.Sphere(1);
+const ballBody = new CANNON.Body({ mass: 1 });
+ballBody.addShape(ballShape);
+ballBody.position.set(0, 10, 0);
+world.add(ballBody);
+
+// 센서 입력을 물리 힘으로 변환
+handleSensorInput(data) {
+    const force = new CANNON.Vec3(
+        data.gameInput.tilt.x * 100,
+        0,
+        data.gameInput.tilt.y * 100
+    );
+    ballBody.applyForce(force, ballBody.position);
+}</code></pre>
                     `;
                     break;
             }
             
-            alert(content);
+            showModal(title, content);
+        }
+
+        /**
+         * 모달 표시
+         */
+        function showModal(title, content) {
+            // 모달이 이미 존재하면 제거
+            const existingModal = document.getElementById('featureModal');
+            if (existingModal) {
+                existingModal.remove();
+            }
+
+            // 모달 생성
+            const modal = document.createElement('div');
+            modal.id = 'featureModal';
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.8);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 10000;
+                padding: 2rem;
+            `;
+
+            const modalContent = document.createElement('div');
+            modalContent.style.cssText = `
+                background: var(--surface);
+                border: 1px solid var(--border);
+                border-radius: 1rem;
+                padding: 2rem;
+                max-width: 800px;
+                max-height: 80vh;
+                overflow-y: auto;
+                color: var(--text-primary);
+                box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            `;
+
+            modalContent.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                    <h2 style="color: var(--primary); margin: 0;">${title}</h2>
+                    <button onclick="closeModal()" style="
+                        background: var(--card);
+                        border: 1px solid var(--border);
+                        border-radius: 0.5rem;
+                        color: var(--text-primary);
+                        padding: 0.5rem 1rem;
+                        cursor: pointer;
+                        font-size: 0.9rem;
+                    ">✕ 닫기</button>
+                </div>
+                <div style="line-height: 1.6;">
+                    ${content}
+                </div>
+            `;
+
+            // 스타일 추가
+            const style = document.createElement('style');
+            style.textContent = `
+                #featureModal h3 { color: var(--primary); margin: 1.5rem 0 0.5rem 0; }
+                #featureModal h4 { color: var(--secondary); margin: 1rem 0 0.5rem 0; }
+                #featureModal ul { margin: 0.5rem 0; padding-left: 1.5rem; }
+                #featureModal li { margin: 0.25rem 0; }
+                #featureModal pre { 
+                    background: var(--background); 
+                    border: 1px solid var(--border); 
+                    border-radius: 0.5rem; 
+                    padding: 1rem; 
+                    margin: 1rem 0;
+                    overflow-x: auto;
+                    font-family: 'Courier New', monospace;
+                    font-size: 0.9rem;
+                }
+                #featureModal code { 
+                    background: var(--card); 
+                    padding: 0.2rem 0.4rem; 
+                    border-radius: 0.25rem; 
+                    font-family: 'Courier New', monospace;
+                    font-size: 0.85rem;
+                }
+                #featureModal pre code { 
+                    background: transparent; 
+                    padding: 0; 
+                }
+            `;
+            document.head.appendChild(style);
+
+            modal.appendChild(modalContent);
+            document.body.appendChild(modal);
+
+            // 모달 외부 클릭 시 닫기
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    closeModal();
+                }
+            });
+        }
+
+        /**
+         * 모달 닫기
+         */
+        function closeModal() {
+            const modal = document.getElementById('featureModal');
+            if (modal) {
+                modal.remove();
+            }
         }
 
         /**

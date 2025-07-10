@@ -641,18 +641,168 @@ handleSensorInput(data) {
 }
 ```
 
-### 3. 물리 엔진 통합
+### 3. 3D 물리 엔진 (Cannon-ES) 통합
+
+**중요**: 플랫폼에 **Cannon-ES 물리 엔진**이 로컬로 설치되어 있습니다.
+
+```html
+<!-- HTML에 물리 엔진 포함 -->
+<script src="/libs/cannon-es.js"></script>
+```
+
+#### 3D 물리 월드 기본 설정
 ```javascript
-updatePhysics() {
-    // 센서 데이터를 물리력으로 변환
-    const forceX = this.player.gameInput.tilt.x * this.forceMultiplier;
-    const forceY = this.player.gameInput.tilt.y * this.forceMultiplier;
+class Physics3DGame extends SensorGameSDK {
+    constructor() {
+        super({
+            gameId: 'physics-3d-game',
+            sensorTypes: ['orientation', 'accelerometer', 'gyroscope']
+        });
+        
+        this.initPhysicsWorld();
+    }
     
-    // 물리 엔진에 힘 적용
-    this.player.body.applyForce(forceX, forceY);
+    initPhysicsWorld() {
+        // 물리 월드 생성
+        this.world = new CANNON.World({
+            gravity: new CANNON.Vec3(0, -9.82, 0)
+        });
+        
+        // 성능 최적화
+        this.world.broadphase = new CANNON.NaiveBroadphase();
+        this.world.solver.iterations = 10;
+        
+        // 충돌 감지 설정
+        this.world.defaultContactMaterial.friction = 0.4;
+        this.world.defaultContactMaterial.restitution = 0.3;
+        
+        // 바닥 생성
+        const groundShape = new CANNON.Plane();
+        const groundBody = new CANNON.Body({ mass: 0 });
+        groundBody.addShape(groundShape);
+        groundBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI / 2);
+        this.world.add(groundBody);
+        
+        // 플레이어 강체 생성
+        this.createPlayerBody();
+    }
     
-    // 중력, 마찰 등 물리 법칙 적용
-    this.physicsWorld.step(deltaTime);
+    createPlayerBody() {
+        // 구 모양 플레이어
+        const shape = new CANNON.Sphere(1);
+        this.playerBody = new CANNON.Body({ mass: 1 });
+        this.playerBody.addShape(shape);
+        this.playerBody.position.set(0, 10, 0);
+        this.world.add(this.playerBody);
+        
+        // 충돌 이벤트 리스너
+        this.playerBody.addEventListener('collide', (e) => {
+            this.handleCollision(e);
+        });
+    }
+    
+    // 센서 입력을 3D 물리력으로 변환
+    handleSensorInput(data) {
+        if (!this.playerBody) return;
+        
+        const { gameInput } = data;
+        const forceMagnitude = 100;
+        
+        // 기울기를 물리력으로 변환
+        if (gameInput.tilt) {
+            const force = new CANNON.Vec3(
+                gameInput.tilt.x * forceMagnitude,
+                0,
+                gameInput.tilt.y * forceMagnitude
+            );
+            this.playerBody.applyForce(force, this.playerBody.position);
+        }
+        
+        // 흔들기로 점프
+        if (gameInput.shake && gameInput.shake.detected) {
+            const jumpForce = new CANNON.Vec3(0, 500, 0);
+            this.playerBody.applyImpulse(jumpForce, this.playerBody.position);
+        }
+        
+        // 자이로스코프로 회전
+        if (gameInput.rotation) {
+            this.playerBody.angularVelocity.set(
+                gameInput.rotation.x,
+                gameInput.rotation.y,
+                gameInput.rotation.z
+            );
+        }
+    }
+    
+    // 물리 시뮬레이션 업데이트
+    updatePhysics(deltaTime) {
+        // 물리 월드 시뮬레이션
+        this.world.step(deltaTime / 1000);
+        
+        // 3D 모델과 물리 강체 동기화
+        this.syncVisualWithPhysics();
+        
+        // 경계 체크
+        this.checkBoundaries();
+    }
+    
+    syncVisualWithPhysics() {
+        // 플레이어 3D 모델을 물리 강체 위치에 맞춤
+        if (this.playerMesh && this.playerBody) {
+            this.playerMesh.position.copy(this.playerBody.position);
+            this.playerMesh.quaternion.copy(this.playerBody.quaternion);
+        }
+    }
+    
+    handleCollision(event) {
+        const { target, body } = event;
+        console.log('충돌 감지:', target, body);
+        
+        // 충돌 효과 처리
+        this.createCollisionEffect(event.contact.getContactPoint());
+    }
+}
+```
+
+#### 고급 3D 물리 기능
+```javascript
+// 제약 조건 (로프, 체인)
+createRopeConstraint(bodyA, bodyB) {
+    const constraint = new CANNON.PointToPointConstraint(
+        bodyA, new CANNON.Vec3(0, 0, 0),
+        bodyB, new CANNON.Vec3(0, 0, 0)
+    );
+    this.world.addConstraint(constraint);
+}
+
+// 차량 물리
+createVehiclePhysics() {
+    const vehicle = new CANNON.RaycastVehicle({
+        chassisBody: this.chassisBody
+    });
+    
+    // 바퀴 추가
+    vehicle.addWheel({
+        radius: 0.5,
+        directionLocal: new CANNON.Vec3(0, -1, 0),
+        suspensionStiffness: 30,
+        suspensionRestLength: 0.3,
+        maxSuspensionForce: 10000
+    });
+    
+    vehicle.addToWorld(this.world);
+    return vehicle;
+}
+
+// 센서 데이터로 차량 제어
+controlVehicle(gameInput) {
+    const engineForce = gameInput.tilt.y * 1000;
+    const steerValue = gameInput.tilt.x * 0.5;
+    
+    this.vehicle.applyEngineForce(engineForce, 2);
+    this.vehicle.applyEngineForce(engineForce, 3);
+    this.vehicle.setSteeringValue(steerValue, 0);
+    this.vehicle.setSteeringValue(steerValue, 1);
 }
 ```
 

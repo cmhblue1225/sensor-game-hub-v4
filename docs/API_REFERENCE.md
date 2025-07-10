@@ -11,9 +11,10 @@
 5. [센서 데이터](#센서-데이터)
 6. [멀티플레이어 API](#멀티플레이어-api)
 7. [유틸리티 함수](#유틸리티-함수)
-8. [설정 옵션](#설정-옵션)
-9. [에러 처리](#에러-처리)
-10. [예제 코드](#예제-코드)
+8. [로컬 라이브러리](#로컬-라이브러리)
+9. [설정 옵션](#설정-옵션)
+10. [에러 처리](#에러-처리)
+11. [예제 코드](#예제-코드)
 
 ---
 
@@ -38,6 +39,9 @@
 ```html
 <script src="/sdk/sensor-game-sdk.js"></script>
 <script src="/sdk/utils.js"></script>
+
+<!-- 3D 물리 엔진 (선택사항) -->
+<script src="/libs/cannon-es.js"></script>
 ```
 
 ### 기본 게임 클래스 생성
@@ -948,6 +952,155 @@ game.on('onConnectionChange', (isConnected) => {
         reconnectAttempts = 0; // 성공 시 리셋
     }
 });
+```
+
+---
+
+## 로컬 라이브러리
+
+### 🎱 Cannon-ES 물리 엔진
+
+센서 게임 허브에는 **Cannon-ES 3D 물리 엔진**이 로컬로 포함되어 있어 오프라인 환경에서도 고성능 3D 물리 시뮬레이션을 사용할 수 있습니다.
+
+#### 라이브러리 정보
+- **버전**: v6.0.0
+- **크기**: ~800KB
+- **경로**: `/libs/cannon-es.js`
+- **용도**: 3D 물리 시뮬레이션, 충돌 감지, 강체 역학
+
+#### 사용 방법
+```html
+<!-- HTML에 라이브러리 포함 -->
+<script src="/libs/cannon-es.js"></script>
+```
+
+#### API 사용 예제
+
+**기본 물리 월드 생성:**
+```javascript
+// 물리 월드 초기화
+const world = new CANNON.World({
+    gravity: new CANNON.Vec3(0, -9.82, 0)  // 중력 설정
+});
+
+// 성능 최적화
+world.broadphase = new CANNON.NaiveBroadphase();
+world.solver.iterations = 10;
+```
+
+**강체 생성 및 추가:**
+```javascript
+// 구 모양 강체
+const sphereShape = new CANNON.Sphere(1);
+const sphereBody = new CANNON.Body({ mass: 1 });
+sphereBody.addShape(sphereShape);
+sphereBody.position.set(0, 10, 0);
+world.add(sphereBody);
+
+// 박스 모양 강체
+const boxShape = new CANNON.Box(new CANNON.Vec3(1, 1, 1));
+const boxBody = new CANNON.Body({ mass: 5 });
+boxBody.addShape(boxShape);
+boxBody.position.set(2, 10, 0);
+world.add(boxBody);
+
+// 바닥 (정적 강체)
+const groundShape = new CANNON.Plane();
+const groundBody = new CANNON.Body({ mass: 0 });  // mass 0 = 정적
+groundBody.addShape(groundShape);
+groundBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI / 2);
+world.add(groundBody);
+```
+
+**센서 입력과 물리 통합:**
+```javascript
+class Physics3DGame extends SensorGameSDK {
+    handleSensorInput(data) {
+        const { gameInput } = data;
+        
+        // 센서 기울기를 물리력으로 변환
+        if (gameInput.tilt && this.playerBody) {
+            const force = new CANNON.Vec3(
+                gameInput.tilt.x * 200,  // X축 힘
+                0,                       // Y축 힘 (중력이 있으므로 보통 0)
+                gameInput.tilt.y * 200   // Z축 힘
+            );
+            
+            // 플레이어 강체에 힘 적용
+            this.playerBody.applyForce(force, this.playerBody.position);
+        }
+        
+        // 흔들기로 점프
+        if (gameInput.shake && gameInput.shake.detected) {
+            const jumpImpulse = new CANNON.Vec3(0, 300, 0);
+            this.playerBody.applyImpulse(jumpImpulse, this.playerBody.position);
+        }
+    }
+    
+    update(deltaTime) {
+        // 물리 월드 시뮬레이션 (중요!)
+        this.world.step(deltaTime / 1000);
+        
+        // 3D 렌더링 객체와 물리 강체 위치 동기화
+        if (this.playerMesh && this.playerBody) {
+            this.playerMesh.position.copy(this.playerBody.position);
+            this.playerMesh.quaternion.copy(this.playerBody.quaternion);
+        }
+    }
+}
+```
+
+**고급 기능:**
+```javascript
+// 충돌 감지 이벤트
+body.addEventListener('collide', (event) => {
+    const { target, body } = event;
+    console.log('충돌 발생!', target, body);
+});
+
+// 재질 설정 (마찰, 반발)
+const material = new CANNON.Material('groundMaterial');
+const contactMaterial = new CANNON.ContactMaterial(
+    material, material, {
+        friction: 0.4,
+        restitution: 0.3
+    }
+);
+world.addContactMaterial(contactMaterial);
+
+// 제약 조건 (힌지, 로프 등)
+const constraint = new CANNON.PointToPointConstraint(
+    bodyA, new CANNON.Vec3(0, 0, 0),
+    bodyB, new CANNON.Vec3(0, 0, 0)
+);
+world.addConstraint(constraint);
+```
+
+**성능 최적화 팁:**
+```javascript
+// 브로드페이즈 알고리즘 선택
+world.broadphase = new CANNON.NaiveBroadphase();        // 적은 객체
+world.broadphase = new CANNON.SAPBroadphase(world);     // 많은 객체
+
+// 솔버 반복 횟수 조정
+world.solver.iterations = 10;  // 높을수록 정확하지만 느림
+
+// 물리 객체 풀링
+class PhysicsObjectPool {
+    constructor() {
+        this.available = [];
+        this.inUse = [];
+    }
+    
+    get() {
+        return this.available.pop() || this.create();
+    }
+    
+    release(obj) {
+        this.inUse.splice(this.inUse.indexOf(obj), 1);
+        this.available.push(obj);
+    }
+}
 ```
 
 ---
