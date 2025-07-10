@@ -1,0 +1,44 @@
+{
+    "id": "multiplayer-template",
+    "name": "🎯 멀티플레이어 게임 템플릿",
+    "description": "최대 4명이 함께 플레이할 수 있는 멀티플레이어 게임 템플릿입니다.",
+    "author": "센서 게임 허브 팀",
+    "version": "1.0.0",
+    "category": "multiplayer",
+    "difficulty": "medium",
+    "gameType": "multiplayer",
+    "icon": "🎯",
+    "sensorTypes": ["orientation", "accelerometer"],
+    "features": ["multiplayer", "sensor-control", "real-time", "competitive"],
+    "minPlayers": 2,
+    "maxPlayers": 4,
+    "estimatedPlayTime": "5-15분",
+    "controls": {
+        "orientation": "기기 기울이기로 플레이어 이동",
+        "accelerometer": "흔들기로 특수 액션 실행",
+        "keyboard": "시뮬레이션 모드: WASD + 스페이스바"
+    },
+    "requirements": {
+        "sensors": ["orientation"],
+        "permissions": ["deviceorientation", "devicemotion"],
+        "browsers": ["Chrome", "Safari", "Firefox", "Edge"],
+        "platforms": ["iOS", "Android", "Desktop"]
+    },
+    "gameMode": {
+        "type": "competitive",
+        "description": "플레이어들이 경쟁하여 가장 높은 점수를 얻는 멀티플레이어 게임",
+        "objective": "다른 플레이어보다 많은 점수 획득",
+        "winCondition": "제한 시간 내 최고 점수 달성",
+        "timeLimit": "5분"
+    },
+    "multiplayerSettings": {
+        "roomCapacity": 4,
+        "spectatorMode": false,
+        "teamMode": false,
+        "realTimeSync": true,
+        "hostMigration": false
+    },
+    "changelog": {
+        "1.0.0": "초기 멀티플레이어 템플릿 릴리즈"
+    }
+}

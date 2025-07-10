@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎮 솔로 게임 템플릿</title>
+    <style>
+        :root {
+            --primary: #6366f1;
+            --secondary: #ec4899;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --error: #ef4444;
+            --background: #0f172a;
+            --surface: #1e293b;
+            --card: #334155;
+            --text-primary: #f8fafc;
+            --text-secondary: #cbd5e1;
+            --border: #475569;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--background);
+            color: var(--text-primary);
+            overflow: hidden;
+            height: 100vh;
+        }
+        
+        /* 게임 캔버스 */
+        #gameCanvas {
+            display: block;
+            background: linear-gradient(135deg, #1e293b, #0f172a);
+            border: none;
+            width: 100vw;
+            height: 100vh;
+        }
+        
+        /* 게임 UI 오버레이 */
+        .game-ui {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            z-index: 100;
+        }
+        
+        .ui-panel {
+            position: absolute;
+            background: rgba(30, 41, 59, 0.9);
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            backdrop-filter: blur(10px);
+            pointer-events: all;
+        }
+        
+        .top-left {
+            top: 1rem;
+            left: 1rem;
+        }
+        
+        .top-right {
+            top: 1rem;
+            right: 1rem;
+            text-align: right;
+        }
+        
+        .top-center {
+            top: 1rem;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+        }
+        
+        .bottom-center {
+            bottom: 1rem;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+        }
+        
+        /* 세션 코드 패널 */
+        .session-code-panel {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 1rem;
+            border-radius: 0.75rem;
+            text-align: center;
+            min-width: 200px;
+        }
+        
+        .session-code-title {
+            font-size: 0.8rem;
+            opacity: 0.9;
+            margin-bottom: 0.5rem;
+        }
+        
+        .session-code-display {
+            font-size: 2rem;
+            font-weight: 700;
+            letter-spacing: 0.5rem;
+            font-family: 'Courier New', monospace;
+        }
+        
+        /* 점수 및 상태 */
+        .score {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--success);
+            margin-bottom: 0.5rem;
+        }
+        
+        .status {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+        
+        /* 버튼 */
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin: 0.25rem;
+            font-size: 0.9rem;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+        }
+        
+        .btn-secondary {
+            background: var(--card);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+        
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+        
+        /* 시작 화면 */
+        .start-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(15, 23, 42, 0.95);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+        }
+        
+        .start-content {
+            text-align: center;
+            max-width: 500px;
+            padding: 2rem;
+        }
+        
+        .start-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .start-description {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            margin-bottom: 2rem;
+            line-height: 1.6;
+        }
+        
+        .controls-info {
+            background: var(--surface);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            margin: 2rem 0;
+            text-align: left;
+        }
+        
+        .controls-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--primary);
+        }
+        
+        .control-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .control-item:last-child {
+            border-bottom: none;
+        }
+        
+        /* 게임 오버 화면 */
+        .game-over-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(15, 23, 42, 0.95);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+        }
+        
+        .game-over-content {
+            text-align: center;
+            background: var(--surface);
+            padding: 2rem;
+            border-radius: 1rem;
+            border: 1px solid var(--border);
+        }
+        
+        .final-score {
+            font-size: 3rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin: 1rem 0;
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+        
+        /* 반응형 */
+        @media (max-width: 768px) {
+            .ui-panel {
+                padding: 0.75rem;
+                font-size: 0.9rem;
+            }
+            
+            .start-title {
+                font-size: 2rem;
+            }
+            
+            .session-code-display {
+                font-size: 1.5rem;
+                letter-spacing: 0.3rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 게임 캔버스 -->
+    <canvas id="gameCanvas"></canvas>
+    
+    <!-- 게임 UI 오버레이 -->
+    <div class="game-ui">
+        <!-- 점수 및 상태 (좌상단) -->
+        <div class="ui-panel top-left">
+            <div class="score">점수: <span id="scoreValue">0</span></div>
+            <div class="status" id="gameStatus">게임 준비중...</div>
+            <div class="status" id="sensorStatus">센서 연결 대기중...</div>
+        </div>
+        
+        <!-- 세션 코드 (상단 중앙) -->
+        <div class="ui-panel top-center session-code-panel hidden" id="sessionCodePanel">
+            <div class="session-code-title">📱 모바일에서 입력하세요</div>
+            <div class="session-code-display" id="sessionCodeDisplay">----</div>
+        </div>
+        
+        <!-- 컨트롤 버튼 (하단 중앙) -->
+        <div class="ui-panel bottom-center">
+            <button class="btn btn-secondary" onclick="game && game.calibrate && game.calibrate()">
+                ⚖️ 센서 보정
+            </button>
+            <button class="btn btn-secondary" onclick="game && game.restart && game.restart()">
+                🔄 다시 시작
+            </button>
+            <button class="btn btn-secondary" onclick="window.open('/', '_blank')">
+                🏠 허브로
+            </button>
+        </div>
+    </div>
+    
+    <!-- 시작 화면 -->
+    <div class="start-screen" id="startScreen">
+        <div class="start-content">
+            <h1 class="start-title">🎮 솔로 게임 템플릿</h1>
+            <p class="start-description">
+                센서를 활용한 게임 템플릿입니다. 휴대폰을 기울여서 플레이하거나 키보드로 시뮬레이션할 수 있습니다.
+            </p>
+            
+            <div class="controls-info">
+                <h3 class="controls-title">🕹️ 조작법</h3>
+                <div class="control-item">
+                    <span>📱 센서 모드:</span>
+                    <span>휴대폰 기울이기</span>
+                </div>
+                <div class="control-item">
+                    <span>⌨️ 키보드 모드:</span>
+                    <span>WASD 또는 화살표 키</span>
+                </div>
+                <div class="control-item">
+                    <span>🎯 특수 액션:</span>
+                    <span>휴대폰 흔들기 / 스페이스바</span>
+                </div>
+                <div class="control-item">
+                    <span>⚖️ 센서 보정:</span>
+                    <span>R키 또는 보정 버튼</span>
+                </div>
+            </div>
+            
+            <button class="btn btn-primary" onclick="startGame()" style="font-size: 1.2rem; padding: 1rem 2rem;">
+                🚀 게임 시작
+            </button>
+        </div>
+    </div>
+    
+    <!-- 게임 오버 화면 -->
+    <div class="game-over-screen" id="gameOverScreen">
+        <div class="game-over-content">
+            <h2>🎯 게임 종료</h2>
+            <div class="final-score" id="finalScore">0</div>
+            <p>훌륭한 플레이였습니다!</p>
+            <div style="margin-top: 2rem;">
+                <button class="btn btn-primary" onclick="restartGame()">
+                    🔄 다시 플레이
+                </button>
+                <button class="btn btn-secondary" onclick="goToHub()">
+                    🏠 허브로 돌아가기
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- SDK 및 게임 스크립트 -->
+    <script src="/sdk/sensor-game-sdk.js"></script>
+    <script src="/sdk/utils.js"></script>
+    <script src="game.js"></script>
+    
+    <script>
+        // 전역 변수
+        let game = null;
+        
+        /**
+         * 게임 시작 함수
+         */
+        function startGame() {
+            const startScreen = document.getElementById('startScreen');
+            if (startScreen) {
+                startScreen.classList.add('hidden');
+            }
+            
+            // 게임 인스턴스가 있으면 시작
+            if (window.game && typeof window.game.start === 'function') {
+                window.game.start();
+            }
+        }
+        
+        /**
+         * 게임 재시작
+         */
+        function restartGame() {
+            const gameOverScreen = document.getElementById('gameOverScreen');
+            if (gameOverScreen) {
+                gameOverScreen.style.display = 'none';
+            }
+            
+            if (window.game && typeof window.game.restart === 'function') {
+                window.game.restart();
+            }
+        }
+        
+        /**
+         * 허브로 이동
+         */
+        function goToHub() {
+            window.location.href = '/';
+        }
+        
+        /**
+         * 게임 오버 표시
+         */
+        function showGameOver(finalScore) {
+            const gameOverScreen = document.getElementById('gameOverScreen');
+            const finalScoreElement = document.getElementById('finalScore');
+            
+            if (finalScoreElement) {
+                finalScoreElement.textContent = finalScore;
+            }
+            
+            if (gameOverScreen) {
+                gameOverScreen.style.display = 'flex';
+            }
+        }
+        
+        /**
+         * 페이지 로드 완료 시 초기화
+         */
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('🎮 솔로 게임 템플릿 로딩 완료');
+            
+            // 캔버스 크기 설정
+            const canvas = document.getElementById('gameCanvas');
+            if (canvas) {
+                const resizeCanvas = () => {
+                    canvas.width = window.innerWidth;
+                    canvas.height = window.innerHeight;
+                };
+                
+                resizeCanvas();
+                window.addEventListener('resize', resizeCanvas);
+            }
+            
+            // 게임 인스턴스가 생성될 때까지 대기
+            const checkGameReady = () => {
+                if (window.game) {
+                    console.log('✅ 게임 인스턴스 준비 완료');
+                } else {
+                    setTimeout(checkGameReady, 100);
+                }
+            };
+            checkGameReady();
+        });
+        
+        // 전역 함수들을 window 객체에 등록
+        window.startGame = startGame;
+        window.restartGame = restartGame;
+        window.goToHub = goToHub;
+        window.showGameOver = showGameOver;
+    </script>
+</body>
+</html>

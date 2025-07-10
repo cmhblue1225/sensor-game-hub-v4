@@ -1,0 +1,988 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📱 센서 클라이언트 v4.0</title>
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --secondary: #ec4899;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --error: #ef4444;
+            --background: #0f172a;
+            --surface: #1e293b;
+            --card: #334155;
+            --text-primary: #f8fafc;
+            --text-secondary: #cbd5e1;
+            --text-muted: #94a3b8;
+            --border: #475569;
+            --gradient: linear-gradient(135deg, var(--primary), var(--secondary));
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--background);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+        }
+        
+        /* 헤더 */
+        .header {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem;
+            text-align: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+        }
+        
+        /* 메인 컨테이너 */
+        .main-container {
+            padding: 2rem 1rem;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        /* 연결 상태 */
+        .connection-status {
+            background: var(--surface);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            border: 1px solid var(--border);
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+        
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+        
+        .status-connected {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+        
+        .status-disconnected {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--error);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+        
+        .status-waiting {
+            background: rgba(245, 158, 11, 0.1);
+            color: var(--warning);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+        
+        /* 탭 메뉴 */
+        .tab-menu {
+            display: flex;
+            background: var(--card);
+            border-radius: 0.75rem;
+            padding: 0.25rem;
+            margin-bottom: 2rem;
+        }
+        
+        .tab-btn {
+            flex: 1;
+            padding: 0.75rem;
+            border: none;
+            background: none;
+            color: var(--text-secondary);
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: 500;
+        }
+        
+        .tab-btn.active {
+            background: var(--primary);
+            color: white;
+        }
+        
+        /* 탭 컨텐츠 */
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        /* 세션 연결 탭 */
+        .session-input {
+            background: var(--surface);
+            border-radius: 1rem;
+            padding: 2rem;
+            border: 1px solid var(--border);
+            margin-bottom: 2rem;
+        }
+        
+        .session-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+        
+        .code-input-container {
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+            margin: 2rem 0;
+        }
+        
+        .code-input {
+            width: 3rem;
+            height: 3rem;
+            border: 2px solid var(--border);
+            border-radius: 0.5rem;
+            background: var(--card);
+            color: var(--text-primary);
+            font-size: 1.5rem;
+            font-weight: 700;
+            text-align: center;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .code-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+        
+        .sensor-type-selection {
+            margin: 1.5rem 0;
+        }
+        
+        .sensor-type-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .sensor-type-card {
+            background: var(--card);
+            border: 2px solid var(--border);
+            border-radius: 0.75rem;
+            padding: 1rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: center;
+        }
+        
+        .sensor-type-card.selected {
+            border-color: var(--primary);
+            background: rgba(99, 102, 241, 0.1);
+        }
+        
+        .sensor-type-card h4 {
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+        }
+        
+        .sensor-type-card p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+        
+        /* 버튼 */
+        .btn {
+            width: 100%;
+            padding: 1rem;
+            border: none;
+            border-radius: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .btn-primary {
+            background: var(--gradient);
+            color: white;
+        }
+        
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+        }
+        
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .btn-secondary {
+            background: var(--card);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+        
+        /* 센서 데이터 표시 */
+        .sensor-data {
+            background: var(--surface);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            border: 1px solid var(--border);
+            margin-bottom: 1.5rem;
+        }
+        
+        .sensor-section {
+            margin-bottom: 1.5rem;
+        }
+        
+        .sensor-section h4 {
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+            font-size: 1rem;
+        }
+        
+        .sensor-values {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.5rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+        }
+        
+        .sensor-value {
+            background: var(--card);
+            padding: 0.5rem;
+            border-radius: 0.5rem;
+            text-align: center;
+        }
+        
+        .sensor-value .label {
+            color: var(--text-muted);
+            font-size: 0.8rem;
+        }
+        
+        .sensor-value .value {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+        
+        /* 틸트 인디케이터 */
+        .tilt-indicator {
+            background: var(--surface);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            border: 1px solid var(--border);
+            margin-bottom: 1.5rem;
+        }
+        
+        .tilt-container {
+            width: 200px;
+            height: 200px;
+            margin: 0 auto;
+            position: relative;
+            background: var(--card);
+            border-radius: 50%;
+            border: 2px solid var(--border);
+        }
+        
+        .tilt-circle {
+            width: 20px;
+            height: 20px;
+            background: var(--primary);
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            transition: all 0.1s ease;
+        }
+        
+        .tilt-center {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 4px;
+            height: 4px;
+            background: var(--border);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+        }
+        
+        /* 캘리브레이션 */
+        .calibration-section {
+            background: var(--surface);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            border: 1px solid var(--border);
+            text-align: center;
+        }
+        
+        .calibration-instructions {
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+            line-height: 1.5;
+        }
+        
+        /* 알림 */
+        .notification {
+            position: fixed;
+            top: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 1rem 1.5rem;
+            border-radius: 0.5rem;
+            color: white;
+            font-weight: 500;
+            z-index: 1001;
+            max-width: 90%;
+            text-align: center;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .notification.show {
+            opacity: 1;
+        }
+        
+        .notification.success {
+            background: var(--success);
+        }
+        
+        .notification.error {
+            background: var(--error);
+        }
+        
+        .notification.warning {
+            background: var(--warning);
+        }
+        
+        /* 반응형 */
+        @media (max-width: 480px) {
+            .main-container {
+                padding: 1rem 0.5rem;
+            }
+            
+            .code-input {
+                width: 2.5rem;
+                height: 2.5rem;
+                font-size: 1.2rem;
+            }
+            
+            .tilt-container {
+                width: 150px;
+                height: 150px;
+            }
+            
+            .sensor-values {
+                grid-template-columns: 1fr;
+                gap: 0.25rem;
+            }
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <!-- 헤더 -->
+    <header class="header">
+        <div class="logo">📱 센서 클라이언트 v4.0</div>
+        <div class="subtitle">센서 데이터를 PC로 전송합니다</div>
+    </header>
+
+    <!-- 메인 컨테이너 -->
+    <main class="main-container">
+        <!-- 연결 상태 -->
+        <div class="connection-status">
+            <div class="status-indicator status-disconnected" id="connectionStatus">
+                <span>🔗</span>
+                <span>서버 연결 중...</span>
+            </div>
+            <div id="connectionInfo" class="hidden">
+                세션 연결 완료! 센서 데이터를 전송 중입니다.
+            </div>
+        </div>
+
+        <!-- 탭 메뉴 -->
+        <div class="tab-menu">
+            <button class="tab-btn active" onclick="switchTab('connect')">연결</button>
+            <button class="tab-btn" onclick="switchTab('sensor')">센서</button>
+            <button class="tab-btn" onclick="switchTab('calibrate')">보정</button>
+        </div>
+
+        <!-- 연결 탭 -->
+        <div id="connectTab" class="tab-content active">
+            <div class="session-input">
+                <h3 class="session-title">세션 코드 입력</h3>
+                <p style="text-align: center; color: var(--text-secondary); margin-bottom: 1.5rem;">
+                    PC에서 표시되는 4자리 코드를 입력하세요
+                </p>
+                
+                <div class="code-input-container">
+                    <input type="text" class="code-input" maxlength="1" id="code1">
+                    <input type="text" class="code-input" maxlength="1" id="code2">
+                    <input type="text" class="code-input" maxlength="1" id="code3">
+                    <input type="text" class="code-input" maxlength="1" id="code4">
+                </div>
+                
+                <div class="sensor-type-selection">
+                    <h4 style="text-align: center; margin-bottom: 1rem;">센서 타입 선택</h4>
+                    <div class="sensor-type-grid">
+                        <div class="sensor-type-card selected" data-type="primary">
+                            <h4>🎮 주 센서</h4>
+                            <p>메인 컨트롤러 역할</p>
+                        </div>
+                        <div class="sensor-type-card" data-type="secondary">
+                            <h4>🎯 보조 센서</h4>
+                            <p>듀얼 센서 게임용</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <button class="btn btn-primary" onclick="connectToSession()" id="connectBtn">
+                    연결하기
+                </button>
+            </div>
+        </div>
+
+        <!-- 센서 탭 -->
+        <div id="sensorTab" class="tab-content">
+            <!-- 틸트 인디케이터 -->
+            <div class="tilt-indicator">
+                <h4 style="text-align: center; margin-bottom: 1rem;">기기 기울기</h4>
+                <div class="tilt-container">
+                    <div class="tilt-circle" id="tiltCircle"></div>
+                    <div class="tilt-center"></div>
+                </div>
+            </div>
+            
+            <!-- 센서 데이터 -->
+            <div class="sensor-data">
+                <div class="sensor-section">
+                    <h4>📱 방향 센서 (Orientation)</h4>
+                    <div class="sensor-values">
+                        <div class="sensor-value">
+                            <div class="label">Alpha</div>
+                            <div class="value" id="orientAlpha">0°</div>
+                        </div>
+                        <div class="sensor-value">
+                            <div class="label">Beta</div>
+                            <div class="value" id="orientBeta">0°</div>
+                        </div>
+                        <div class="sensor-value">
+                            <div class="label">Gamma</div>
+                            <div class="value" id="orientGamma">0°</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="sensor-section">
+                    <h4>🏃 가속도계 (Accelerometer)</h4>
+                    <div class="sensor-values">
+                        <div class="sensor-value">
+                            <div class="label">X</div>
+                            <div class="value" id="accelX">0.0</div>
+                        </div>
+                        <div class="sensor-value">
+                            <div class="label">Y</div>
+                            <div class="value" id="accelY">0.0</div>
+                        </div>
+                        <div class="sensor-value">
+                            <div class="label">Z</div>
+                            <div class="value" id="accelZ">0.0</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="sensor-section">
+                    <h4>🌀 자이로스코프 (Gyroscope)</h4>
+                    <div class="sensor-values">
+                        <div class="sensor-value">
+                            <div class="label">Alpha</div>
+                            <div class="value" id="gyroAlpha">0°/s</div>
+                        </div>
+                        <div class="sensor-value">
+                            <div class="label">Beta</div>
+                            <div class="value" id="gyroBeta">0°/s</div>
+                        </div>
+                        <div class="sensor-value">
+                            <div class="label">Gamma</div>
+                            <div class="value" id="gyroGamma">0°/s</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <button class="btn btn-secondary" onclick="requestSensorPermission()" id="permissionBtn">
+                센서 권한 요청
+            </button>
+        </div>
+
+        <!-- 보정 탭 -->
+        <div id="calibrateTab" class="tab-content">
+            <div class="calibration-section">
+                <h3 style="margin-bottom: 1rem;">센서 보정</h3>
+                <div class="calibration-instructions">
+                    기기를 평평한 곳에 놓고 보정 버튼을 눌러주세요.<br>
+                    보정 후 센서 데이터가 더 정확해집니다.
+                </div>
+                <button class="btn btn-primary" onclick="calibrateSensors()">
+                    센서 보정하기
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <!-- 알림 영역 -->
+    <div class="notification" id="notification"></div>
+
+    <script>
+        // 전역 변수
+        let ws = null;
+        let isConnected = false;
+        let sessionConnected = false;
+        let selectedSensorType = 'primary';
+        let sensorPermissionGranted = false;
+        let calibrationOffset = { alpha: 0, beta: 0, gamma: 0 };
+        
+        // DOM 요소들
+        const elements = {
+            connectionStatus: document.getElementById('connectionStatus'),
+            connectionInfo: document.getElementById('connectionInfo'),
+            connectBtn: document.getElementById('connectBtn'),
+            permissionBtn: document.getElementById('permissionBtn'),
+            tiltCircle: document.getElementById('tiltCircle'),
+            notification: document.getElementById('notification'),
+            codeInputs: [
+                document.getElementById('code1'),
+                document.getElementById('code2'),
+                document.getElementById('code3'),
+                document.getElementById('code4')
+            ]
+        };
+
+        // 초기화
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('📱 센서 클라이언트 v4.0 시작');
+            
+            // 이벤트 리스너 설정
+            setupEventListeners();
+            
+            // 서버 연결
+            connectToServer();
+            
+            // 센서 권한 확인
+            checkSensorSupport();
+        });
+
+        // 이벤트 리스너 설정
+        function setupEventListeners() {
+            // 코드 입력 필드
+            elements.codeInputs.forEach((input, index) => {
+                input.addEventListener('input', (e) => {
+                    const value = e.target.value;
+                    if (value && /^[0-9]$/.test(value)) {
+                        // 다음 필드로 포커스 이동
+                        if (index < 3) {
+                            elements.codeInputs[index + 1].focus();
+                        }
+                    }
+                });
+                
+                input.addEventListener('keydown', (e) => {
+                    if (e.key === 'Backspace' && !e.target.value && index > 0) {
+                        elements.codeInputs[index - 1].focus();
+                    }
+                });
+            });
+            
+            // 센서 타입 선택
+            document.querySelectorAll('.sensor-type-card').forEach(card => {
+                card.addEventListener('click', () => {
+                    document.querySelectorAll('.sensor-type-card').forEach(c => c.classList.remove('selected'));
+                    card.classList.add('selected');
+                    selectedSensorType = card.dataset.type;
+                });
+            });
+            
+            // 센서 이벤트 리스너
+            if (window.DeviceOrientationEvent) {
+                window.addEventListener('deviceorientation', handleOrientation);
+            }
+            
+            if (window.DeviceMotionEvent) {
+                window.addEventListener('devicemotion', handleMotion);
+            }
+        }
+
+        // 서버 연결
+        function connectToServer() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const host = window.location.host;
+            const wsUrl = `${protocol}//${host}`;
+            
+            try {
+                ws = new WebSocket(wsUrl);
+                
+                ws.onopen = () => {
+                    console.log('🔗 서버 연결 성공');
+                    isConnected = true;
+                    updateConnectionStatus('connected', '서버 연결됨');
+                    
+                    // 센서 클라이언트로 등록
+                    ws.send(JSON.stringify({
+                        type: 'register_sensor',
+                        sensorType: selectedSensorType
+                    }));
+                };
+                
+                ws.onmessage = (event) => {
+                    try {
+                        const message = JSON.parse(event.data);
+                        handleServerMessage(message);
+                    } catch (error) {
+                        console.error('메시지 처리 오류:', error);
+                    }
+                };
+                
+                ws.onclose = () => {
+                    console.log('🔌 서버 연결 종료');
+                    isConnected = false;
+                    sessionConnected = false;
+                    updateConnectionStatus('disconnected', '서버 연결 끊김');
+                    
+                    // 재연결 시도
+                    setTimeout(() => {
+                        console.log('🔄 재연결 시도');
+                        connectToServer();
+                    }, 3000);
+                };
+                
+                ws.onerror = (error) => {
+                    console.error('WebSocket 오류:', error);
+                    showNotification('서버 연결 오류가 발생했습니다.', 'error');
+                };
+                
+            } catch (error) {
+                console.error('연결 실패:', error);
+                showNotification('서버에 연결할 수 없습니다.', 'error');
+            }
+        }
+
+        // 서버 메시지 처리
+        function handleServerMessage(message) {
+            switch (message.type) {
+                case 'session_join_result':
+                    handleSessionJoinResult(message);
+                    break;
+                    
+                case 'session_disconnected':
+                    handleSessionDisconnected(message);
+                    break;
+                    
+                case 'error':
+                    showNotification(message.message, 'error');
+                    break;
+                    
+                default:
+                    console.log('알 수 없는 메시지:', message);
+            }
+        }
+
+        // 세션 참가 결과 처리
+        function handleSessionJoinResult(message) {
+            if (message.success) {
+                sessionConnected = true;
+                updateConnectionStatus('connected', `세션 연결됨 (${message.sensorType})`);
+                elements.connectionInfo.classList.remove('hidden');
+                showNotification('세션에 연결되었습니다!', 'success');
+                
+                // 센서 탭으로 전환
+                switchTab('sensor');
+            } else {
+                showNotification(message.error || '세션 연결에 실패했습니다.', 'error');
+                elements.connectBtn.disabled = false;
+                elements.connectBtn.textContent = '연결하기';
+            }
+        }
+
+        // 세션 연결 해제 처리
+        function handleSessionDisconnected(message) {
+            sessionConnected = false;
+            elements.connectionInfo.classList.add('hidden');
+            updateConnectionStatus('waiting', '세션 연결 대기');
+            showNotification('세션 연결이 해제되었습니다.', 'warning');
+            
+            // 연결 탭으로 전환
+            switchTab('connect');
+        }
+
+        // 세션 연결
+        function connectToSession() {
+            if (!isConnected) {
+                showNotification('먼저 서버에 연결해주세요.', 'warning');
+                return;
+            }
+            
+            // 세션 코드 가져오기
+            const sessionCode = elements.codeInputs.map(input => input.value).join('');
+            
+            if (sessionCode.length !== 4 || !/^[0-9]{4}$/.test(sessionCode)) {
+                showNotification('올바른 4자리 숫자를 입력해주세요.', 'error');
+                return;
+            }
+            
+            elements.connectBtn.disabled = true;
+            elements.connectBtn.textContent = '연결 중...';
+            
+            // 세션 참가 요청
+            ws.send(JSON.stringify({
+                type: 'join_session',
+                sessionCode: sessionCode,
+                sensorType: selectedSensorType
+            }));
+        }
+
+        // 센서 지원 확인
+        function checkSensorSupport() {
+            const support = {
+                orientation: 'DeviceOrientationEvent' in window,
+                motion: 'DeviceMotionEvent' in window,
+                permissions: 'permissions' in navigator,
+                requestPermission: typeof DeviceOrientationEvent.requestPermission === 'function'
+            };
+            
+            console.log('센서 지원:', support);
+            
+            if (!support.orientation && !support.motion) {
+                showNotification('이 기기는 센서를 지원하지 않습니다.', 'error');
+                elements.permissionBtn.style.display = 'none';
+            } else if (support.requestPermission) {
+                elements.permissionBtn.style.display = 'block';
+            } else {
+                sensorPermissionGranted = true;
+                elements.permissionBtn.style.display = 'none';
+            }
+        }
+
+        // 센서 권한 요청 (iOS)
+        async function requestSensorPermission() {
+            if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+                try {
+                    const permission = await DeviceOrientationEvent.requestPermission();
+                    if (permission === 'granted') {
+                        sensorPermissionGranted = true;
+                        elements.permissionBtn.style.display = 'none';
+                        showNotification('센서 권한이 허용되었습니다!', 'success');
+                    } else {
+                        showNotification('센서 권한이 거부되었습니다.', 'error');
+                    }
+                } catch (error) {
+                    console.error('센서 권한 요청 실패:', error);
+                    showNotification('센서 권한 요청 중 오류가 발생했습니다.', 'error');
+                }
+            } else {
+                sensorPermissionGranted = true;
+                elements.permissionBtn.style.display = 'none';
+                showNotification('센서가 활성화되었습니다!', 'success');
+            }
+        }
+
+        // 방향 센서 처리
+        function handleOrientation(event) {
+            if (!sessionConnected || !sensorPermissionGranted) return;
+            
+            const alpha = event.alpha || 0;
+            const beta = event.beta || 0;
+            const gamma = event.gamma || 0;
+            
+            // 보정값 적용
+            const correctedAlpha = alpha - calibrationOffset.alpha;
+            const correctedBeta = beta - calibrationOffset.beta;
+            const correctedGamma = gamma - calibrationOffset.gamma;
+            
+            // UI 업데이트
+            document.getElementById('orientAlpha').textContent = correctedAlpha.toFixed(1) + '°';
+            document.getElementById('orientBeta').textContent = correctedBeta.toFixed(1) + '°';
+            document.getElementById('orientGamma').textContent = correctedGamma.toFixed(1) + '°';
+            
+            // 틸트 인디케이터 업데이트
+            updateTiltIndicator(correctedBeta, correctedGamma);
+            
+            // 서버로 데이터 전송
+            sendSensorData({
+                type: 'sensor_data',
+                data: {
+                    orientation: {
+                        alpha: correctedAlpha,
+                        beta: correctedBeta,
+                        gamma: correctedGamma
+                    }
+                }
+            });
+        }
+
+        // 모션 센서 처리
+        function handleMotion(event) {
+            if (!sessionConnected || !sensorPermissionGranted) return;
+            
+            const acceleration = event.acceleration || { x: 0, y: 0, z: 0 };
+            const rotationRate = event.rotationRate || { alpha: 0, beta: 0, gamma: 0 };
+            
+            // UI 업데이트
+            document.getElementById('accelX').textContent = acceleration.x.toFixed(2);
+            document.getElementById('accelY').textContent = acceleration.y.toFixed(2);
+            document.getElementById('accelZ').textContent = acceleration.z.toFixed(2);
+            
+            document.getElementById('gyroAlpha').textContent = rotationRate.alpha.toFixed(1) + '°/s';
+            document.getElementById('gyroBeta').textContent = rotationRate.beta.toFixed(1) + '°/s';
+            document.getElementById('gyroGamma').textContent = rotationRate.gamma.toFixed(1) + '°/s';
+            
+            // 서버로 데이터 전송
+            sendSensorData({
+                type: 'sensor_data',
+                data: {
+                    accelerometer: acceleration,
+                    gyroscope: rotationRate
+                }
+            });
+        }
+
+        // 센서 데이터 전송
+        function sendSensorData(data) {
+            if (ws && ws.readyState === WebSocket.OPEN && sessionConnected) {
+                ws.send(JSON.stringify(data));
+            }
+        }
+
+        // 틸트 인디케이터 업데이트
+        function updateTiltIndicator(beta, gamma) {
+            const circle = elements.tiltCircle;
+            const maxTilt = 45; // 최대 기울기 각도
+            
+            // 기울기를 -1 ~ 1 범위로 정규화
+            const normalizedX = Math.max(-1, Math.min(1, gamma / maxTilt));
+            const normalizedY = Math.max(-1, Math.min(1, beta / maxTilt));
+            
+            // 원의 중심에서의 오프셋 계산 (반지름 90px)
+            const offsetX = normalizedX * 90;
+            const offsetY = normalizedY * 90;
+            
+            circle.style.transform = `translate(calc(-50% + ${offsetX}px), calc(-50% + ${offsetY}px))`;
+        }
+
+        // 센서 보정
+        function calibrateSensors() {
+            // 현재 센서 값을 기준으로 보정
+            const orientAlpha = parseFloat(document.getElementById('orientAlpha').textContent) || 0;
+            const orientBeta = parseFloat(document.getElementById('orientBeta').textContent) || 0;
+            const orientGamma = parseFloat(document.getElementById('orientGamma').textContent) || 0;
+            
+            calibrationOffset = {
+                alpha: orientAlpha,
+                beta: orientBeta,
+                gamma: orientGamma
+            };
+            
+            showNotification('센서 보정이 완료되었습니다!', 'success');
+        }
+
+        // 탭 전환
+        function switchTab(tabName) {
+            // 모든 탭 버튼 비활성화
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            // 선택된 탭 활성화
+            document.querySelector(`[onclick="switchTab('${tabName}')"]`).classList.add('active');
+            document.getElementById(`${tabName}Tab`).classList.add('active');
+        }
+
+        // 연결 상태 업데이트
+        function updateConnectionStatus(status, text) {
+            const statusElement = elements.connectionStatus;
+            statusElement.className = `status-indicator status-${status}`;
+            
+            const icons = {
+                connected: '✅',
+                disconnected: '❌',
+                waiting: '⏳'
+            };
+            
+            statusElement.innerHTML = `<span>${icons[status]}</span><span>${text}</span>`;
+        }
+
+        // 알림 표시
+        function showNotification(message, type = 'info') {
+            const notification = elements.notification;
+            notification.textContent = message;
+            notification.className = `notification ${type}`;
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        // 화면 켜짐 상태 유지
+        if ('wakeLock' in navigator) {
+            let wakeLock = null;
+            
+            async function requestWakeLock() {
+                try {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                    console.log('화면 켜짐 상태 유지 활성화');
+                } catch (err) {
+                    console.log('화면 켜짐 상태 유지 실패:', err);
+                }
+            }
+            
+            // 페이지가 활성화될 때 wake lock 요청
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'visible') {
+                    requestWakeLock();
+                }
+            });
+            
+            // 초기 wake lock 요청
+            requestWakeLock();
+        }
+    </script>
+</body>
+</html>

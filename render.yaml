@@ -1,0 +1,93 @@
+services:
+  # 메인 웹 서비스
+  - type: web
+    name: sensor-game-hub-v4
+    env: node
+    plan: free
+    region: oregon
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /
+    
+    # 환경 변수
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: ALLOWED_ORIGINS
+        value: "*"
+    
+    # 자동 배포 설정
+    autoDeploy: true
+    
+    # 브랜치 설정
+    branch: main
+    
+    # 빌드 설정
+    buildFilter:
+      paths:
+        - "**/*"
+      ignoredPaths:
+        - ".git/**"
+        - "node_modules/**"
+        - "*.md"
+        - ".gitignore"
+        - "README.md"
+    
+    # 헬스체크 설정
+    healthCheck:
+      path: /
+      initialDelaySeconds: 30
+      periodSeconds: 10
+      timeoutSeconds: 5
+      successThreshold: 1
+      failureThreshold: 3
+    
+    # 리소스 제한
+    disk: 512MB
+    
+    # 헤더 설정
+    headers:
+      - path: "/*"
+        name: "X-Frame-Options"
+        value: "SAMEORIGIN"
+      - path: "/*"
+        name: "X-Content-Type-Options"
+        value: "nosniff"
+      - path: "/*"
+        name: "Referrer-Policy"
+        value: "strict-origin-when-cross-origin"
+      - path: "/sdk/*"
+        name: "Cache-Control"
+        value: "public, max-age=3600"
+      - path: "/client/*"
+        name: "Cache-Control"
+        value: "public, max-age=1800"
+    
+    # 라우팅 설정
+    routes:
+      - type: redirect
+        source: /
+        destination: /client/hub.html
+      - type: redirect
+        source: /hub
+        destination: /client/hub.html
+      - type: redirect
+        source: /sensor
+        destination: /client/sensor.html
+      - type: rewrite
+        source: /game/:gameId
+        destination: /games/:gameId/index.html
+    
+    # 정적 파일 서빙
+    staticPublishPath: ./
+    
+# 데이터베이스 (선택사항 - 향후 확장용)
+# - type: pserv
+#   name: sensor-game-db
+#   env: postgres
+#   plan: free
+#   region: oregon
+#   databaseName: sensor_game_hub
+#   databaseUser: admin

@@ -1,0 +1,36 @@
+{
+    "id": "solo-template",
+    "name": "🎮 솔로 게임 템플릿",
+    "description": "센서를 활용한 솔로 게임 개발을 위한 기본 템플릿입니다.",
+    "author": "센서 게임 허브 팀",
+    "version": "1.0.0",
+    "category": "template",
+    "difficulty": "medium",
+    "gameType": "solo",
+    "icon": "🎮",
+    "sensorTypes": ["orientation", "accelerometer"],
+    "features": ["sensor-control", "single-player", "physics"],
+    "minPlayers": 1,
+    "maxPlayers": 1,
+    "estimatedPlayTime": "5-10분",
+    "controls": {
+        "orientation": "기기 기울이기로 플레이어 이동",
+        "accelerometer": "흔들기로 특수 액션 실행",
+        "keyboard": "시뮬레이션 모드: WASD + 스페이스바"
+    },
+    "requirements": {
+        "sensors": ["orientation"],
+        "permissions": ["deviceorientation", "devicemotion"],
+        "browsers": ["Chrome", "Safari", "Firefox", "Edge"],
+        "platforms": ["iOS", "Android", "Desktop"]
+    },
+    "gameMode": {
+        "type": "survival",
+        "description": "센서로 플레이어를 조종하여 점수를 얻는 게임",
+        "objective": "가능한 한 오래 생존하며 높은 점수 달성",
+        "winCondition": "최고 점수 기록"
+    },
+    "changelog": {
+        "1.0.0": "초기 템플릿 릴리즈"
+    }
+}
