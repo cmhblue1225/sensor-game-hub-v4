@@ -868,7 +868,10 @@
             // 게임 페이지로 이동
             const game = games.find(g => g.id === data.roomData.gameId);
             if (game) {
-                window.location.href = `/play/${game.id}`;
+                // 세션 정보와 함께 게임 페이지로 이동
+                const sessionCode = sdk.state.sessionCode;
+                const sessionId = sdk.state.sessionId;
+                window.location.href = `/play/${game.id}?sessionCode=${sessionCode}&sessionId=${sessionId}`;
             }
         }
 
@@ -1004,7 +1007,10 @@
                 return;
             }
             
-            window.location.href = `/play/${gameId}`;
+            // 세션 정보와 함께 게임 페이지로 이동
+            const sessionCode = sdk.state.sessionCode;
+            const sessionId = sdk.state.sessionId;
+            window.location.href = `/play/${gameId}?sessionCode=${sessionCode}&sessionId=${sessionId}`;
         }
 
         // 룸 생성 모달 열기
@@ -1081,7 +1087,10 @@
             if (room) {
                 const game = games.find(g => g.id === room.gameId);
                 if (game) {
-                    window.location.href = `/play/${game.id}`;
+                    // 세션 정보와 함께 게임 페이지로 이동
+                    const sessionCode = sdk.state.sessionCode;
+                    const sessionId = sdk.state.sessionId;
+                    window.location.href = `/play/${game.id}?sessionCode=${sessionCode}&sessionId=${sessionId}`;
                 }
             }
         }

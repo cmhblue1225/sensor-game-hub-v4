@@ -84,6 +84,17 @@ class MultiplayerSensorTestGame extends SensorGameSDK {
     init() {
         console.log('🧪 멀티플레이어 센서 테스트 게임 초기화');
         
+        // URL 파라미터에서 세션 정보 추출
+        const urlParams = new URLSearchParams(window.location.search);
+        const sessionCode = urlParams.get('sessionCode');
+        const sessionId = urlParams.get('sessionId');
+        
+        if (sessionCode && sessionId) {
+            console.log('🔄 기존 세션 복원:', sessionCode);
+            this.state.sessionCode = sessionCode;
+            this.state.sessionId = sessionId;
+        }
+        
         // 캔버스 설정
         this.setupCanvas();
         

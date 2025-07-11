@@ -459,6 +459,19 @@ app.get('/play/:gameId', (req, res) => {
     }
 });
 
+// 게임별 정적 파일 서빙
+app.get('/play/:gameId/*', (req, res) => {
+    const gameId = req.params.gameId;
+    const filePath = req.params[0]; // * 부분
+    const fullPath = path.join(__dirname, 'games', gameId, filePath);
+    
+    if (fs.existsSync(fullPath)) {
+        res.sendFile(fullPath);
+    } else {
+        res.status(404).send('파일을 찾을 수 없습니다.');
+    }
+});
+
 // 관리자 페이지
 app.get('/admin', (req, res) => {
     res.sendFile(path.join(__dirname, 'client', 'admin.html'));
