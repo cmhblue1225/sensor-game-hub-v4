@@ -1,0 +1,11 @@
+{
+    "id": "ball-roller",
+    "name": "⚪ Ball Roller",
+    "description": "Tilt your phone to roll the ball!",
+    "gameType": "solo",
+    "category": "puzzle",
+    "difficulty": "easy",
+    "sensorTypes": ["orientation"],
+    "minPlayers": 1,
+    "maxPlayers": 1
+}
