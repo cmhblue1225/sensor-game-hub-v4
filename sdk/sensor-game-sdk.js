@@ -272,6 +272,10 @@ class SensorGameSDK {
                 this.emit('onError', { type: 'server', message: message.message });
                 break;
                 
+            case 'pong':
+                this.handlePong(message);
+                break;
+                
             default:
                 console.warn('알 수 없는 메시지:', message);
         }
@@ -565,6 +569,22 @@ class SensorGameSDK {
             this.keyboardState[e.code] = false;
         });
         
+        // 페이지 이동/종료 시 연결 정리
+        window.addEventListener('beforeunload', () => {
+            this.handlePageUnload();
+        });
+        
+        // 다른 탭/윈도우로 이동 시 연결 유지 처리
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                console.log('🔄 페이지가 백그라운드로 이동');
+            } else {
+                console.log('🔄 페이지가 포그라운드로 복귀');
+                // 연결 상태 확인 및 필요 시 재연결
+                this.checkConnectionStatus();
+            }
+        });
+        
         // 키보드 시뮬레이션 데이터 생성
         this.keyboardSimulationLoop();
     }
@@ -815,12 +835,66 @@ class SensorGameSDK {
     }
     
     /**
+     * Pong 메시지 처리 (연결 상태 확인)
+     */
+    handlePong(message) {
+        const latency = Date.now() - message.originalTimestamp;
+        console.log(`🏓 서버 응답 (지연시간: ${latency}ms)`);
+        
+        // 연결이 정상임을 확인
+        this.state.isConnected = true;
+        this.state.lastPong = Date.now();
+    }
+    
+    /**
+     * 페이지 언로드 처리
+     */
+    handlePageUnload() {
+        try {
+            // 서버에 정상적인 연결 해제 알림
+            if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                this.sendMessage({
+                    type: 'client_disconnect',
+                    reason: 'page_unload',
+                    sessionId: this.state.sessionId,
+                    timestamp: Date.now()
+                });
+                
+                // 즉시 연결 종료
+                this.ws.close();
+            }
+            
+            console.log('📄 페이지 언로드 처리 완료');
+        } catch (error) {
+            console.error('페이지 언로드 처리 오류:', error);
+        }
+    }
+    
+    /**
+     * 연결 상태 확인 및 재연결
+     */
+    checkConnectionStatus() {
+        if (!this.state.isConnected && this.ws && this.ws.readyState === WebSocket.CLOSED) {
+            console.log('🔄 연결이 끊어진 것을 감지, 재연결 시도');
+            
+            // 잠시 후 재연결 시도
+            setTimeout(() => {
+                this.connect();
+            }, 1000);
+        } else if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+            // 연결이 살아있는지 핑 테스트
+            this.sendMessage({
+                type: 'ping',
+                timestamp: Date.now()
+            });
+        }
+    }
+    
+    /**
      * SDK 정리
      */
     destroy() {
-        if (this.ws) {
-            this.ws.close();
-        }
+        this.handlePageUnload();
         
         this.callbacks = {};
         this.sensorData = {};

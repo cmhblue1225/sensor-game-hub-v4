@@ -640,6 +640,14 @@ function handleMessage(clientId, message) {
             handleAdminDisconnectAll(clientId, message);
             break;
             
+        case 'ping':
+            handlePing(clientId, message);
+            break;
+            
+        case 'client_disconnect':
+            handleClientDisconnect(clientId, message);
+            break;
+            
         default:
             console.warn('알 수 없는 메시지 타입:', message.type);
     }
@@ -1072,6 +1080,34 @@ function handleAdminDisconnectAll(clientId, message) {
         result: `${disconnectedCount}개 클라이언트 연결 해제 완료`,
         timestamp: Date.now()
     }));
+}
+
+/**
+ * 핑 메시지 처리
+ */
+function handlePing(clientId, message) {
+    const client = clients.get(clientId);
+    if (!client) return;
+    
+    // 퐁으로 응답
+    client.ws.send(JSON.stringify({
+        type: 'pong',
+        timestamp: Date.now(),
+        originalTimestamp: message.timestamp
+    }));
+}
+
+/**
+ * 클라이언트 연결 해제 메시지 처리
+ */
+function handleClientDisconnect(clientId, message) {
+    const client = clients.get(clientId);
+    if (!client) return;
+    
+    console.log(`📄 클라이언트 정상 연결 해제: ${clientId} (${message.reason || 'unknown'})`);
+    
+    // 정상적인 연결 해제 처리
+    handleDisconnect(clientId);
 }
 
 /**
