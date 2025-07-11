@@ -423,12 +423,16 @@ class SensorTestGame extends SensorGameSDK {
             gameStartTime: 0
         };
         
-        // 플레이어 위치 초기화
+        // 플레이어 객체 초기화
         const rect = this.canvas?.getBoundingClientRect() || { width: 800, height: 600 };
-        this.player.x = rect.width / 2;
-        this.player.y = rect.height / 2;
-        this.player.velocity = { x: 0, y: 0 };
-        this.player.trail = [];
+        this.player = {
+            x: rect.width / 2,
+            y: rect.height / 2,
+            velocity: { x: 0, y: 0 },
+            trail: [],
+            radius: 20,
+            color: '#3b82f6'
+        };
         
         // 게임 객체들 초기화
         this.collectibles = [];
@@ -451,6 +455,8 @@ class SensorTestGame extends SensorGameSDK {
     handleSensorInput(data) {
         const { gameInput, rawData, sensorType } = data;
         this.sensorTest.lastUpdate = Date.now();
+        
+        console.log('📱 센서 데이터 수신:', { gameInput, sensorType });
         
         // 1. 방향 센서 (기울기) - 빨간 볼 이동
         if (gameInput.tilt) {
