@@ -50,10 +50,7 @@ class BallRollerGame extends SensorGameSDK {
         this.ctx.scale(dpr, dpr);
 
         // Center the ball initially or adjust its position if already playing
-        if (!this.gameState.isPlaying) {
-            this.gameState.ball.x = this.canvas.width / (2 * dpr);
-            this.gameState.ball.y = this.canvas.height / (2 * dpr);
-        }
+        
     }
 
     setupCallbacks() {
