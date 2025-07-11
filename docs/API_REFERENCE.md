@@ -1640,16 +1640,413 @@ https://your-domain.com/sensor
 
 ---
 
+## 🔄 연결 유지 및 상태 관리 API (NEW)
+
+### 페이지 이동 처리
+
+센서 게임 허브 v4.0는 페이지 간 이동에서도 안정적인 연결을 제공합니다.
+
+#### 새로운 이벤트
+
+```javascript
+// 연결 상태 변경 이벤트
+sdk.on('onConnectionStateChanged', (state) => {
+    console.log('연결 상태:', state.isConnected);
+    console.log('지연시간:', state.latency);
+});
+
+// 재연결 이벤트
+sdk.on('onReconnected', () => {
+    console.log('서버 재연결 완료');
+});
+
+// 연결 끊김 이벤트
+sdk.on('onDisconnected', (reason) => {
+    console.log('연결 끊김:', reason);
+});
+```
+
+#### 새로운 메서드
+
+```javascript
+// 연결 상태 확인
+const isConnected = sdk.isConnected();
+
+// 지연시간 확인
+const latency = sdk.getLatency();
+
+// 수동 재연결
+sdk.reconnect();
+
+// 연결 상태 정보
+const connectionInfo = sdk.getConnectionInfo();
+/*
+{
+    isConnected: true,
+    latency: 45,
+    lastPong: 1640995200000,
+    reconnectAttempts: 0
+}
+*/
+```
+
+#### 자동 연결 관리
+
+```javascript
+class MyGame extends SensorGameSDK {
+    constructor() {
+        super({
+            gameId: 'my-game',
+            // 자동 연결 관리 설정
+            autoReconnect: true,
+            maxReconnectAttempts: 5,
+            reconnectDelay: 1000
+        });
+    }
+    
+    // 연결 상태 모니터링 (자동 호출)
+    onConnectionLost() {
+        this.showReconnectingUI();
+    }
+    
+    onConnectionRestored() {
+        this.hideReconnectingUI();
+        this.syncGameState();
+    }
+}
+```
+
+### 새로운 WebSocket 메시지
+
+#### 클라이언트 → 서버
+
+```javascript
+// 핑 메시지 (연결 상태 확인)
+{
+    "type": "ping",
+    "timestamp": 1640995200000
+}
+
+// 정상적인 연결 해제 알림
+{
+    "type": "client_disconnect",
+    "reason": "page_unload",
+    "sessionId": "session-uuid",
+    "timestamp": 1640995200000
+}
+```
+
+#### 서버 → 클라이언트
+
+```javascript
+// 퐁 응답
+{
+    "type": "pong",
+    "timestamp": 1640995200000,
+    "originalTimestamp": 1640995199955
+}
+
+// 연결 상태 알림
+{
+    "type": "connection_status",
+    "isConnected": true,
+    "latency": 45
+}
+```
+
+## 📱 QR 코드 API (NEW)
+
+### QR 코드 생성
+
+센서 게임 허브는 자동 QR 코드 생성을 지원합니다.
+
+#### 기본 사용법
+
+```javascript
+// qrcode-generator 라이브러리 사용
+function generateQRCode(url, options = {}) {
+    const qr = qrcode(0, options.errorCorrectionLevel || 'M');
+    qr.addData(url);
+    qr.make();
+    
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const modules = qr.getModuleCount();
+    const cellSize = options.cellSize || 6;
+    const margin = options.margin || 4;
+    
+    canvas.width = canvas.height = modules * cellSize + 2 * margin * cellSize;
+    
+    // 배경 그리기
+    ctx.fillStyle = options.backgroundColor || '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // QR 코드 모듈 그리기
+    ctx.fillStyle = options.foregroundColor || '#000000';
+    for (let row = 0; row < modules; row++) {
+        for (let col = 0; col < modules; col++) {
+            if (qr.isDark(row, col)) {
+                ctx.fillRect(
+                    (col * cellSize) + (margin * cellSize),
+                    (row * cellSize) + (margin * cellSize),
+                    cellSize,
+                    cellSize
+                );
+            }
+        }
+    }
+    
+    return canvas;
+}
+```
+
+#### 자동 URL 감지
+
+```javascript
+// 현재 서버 주소 기반 QR 코드 생성
+function generateSensorQRCode() {
+    const sensorUrl = `${window.location.origin}/sensor`;
+    return generateQRCode(sensorUrl, {
+        cellSize: 8,
+        margin: 4,
+        errorCorrectionLevel: 'M'
+    });
+}
+```
+
+#### 커스터마이징 옵션
+
+```javascript
+const qrOptions = {
+    cellSize: 8,              // 셀 크기 (픽셀)
+    margin: 4,                // 여백 크기
+    errorCorrectionLevel: 'M', // 오류 정정 레벨 (L/M/Q/H)
+    backgroundColor: '#ffffff', // 배경색
+    foregroundColor: '#1e293b' // 전경색 (QR 코드 색상)
+};
+
+const qrCanvas = generateQRCode('https://example.com/sensor', qrOptions);
+```
+
+## 🛠️ 개발자 센터 API (NEW)
+
+### 개발자 도구 접근
+
+개발자 센터는 REST API를 통해 개발 도구에 접근할 수 있습니다.
+
+#### 엔드포인트
+
+```javascript
+// 개발자 센터 메인 페이지
+GET /developer
+
+// 개발자 센터 (단축 URL)
+GET /dev
+
+// 문서 다운로드
+GET /docs/:filename
+
+// SDK 파일 접근
+GET /sdk/:filename
+
+// 라이브러리 접근
+GET /libs/:filename
+
+// 템플릿 접근
+GET /templates/:templateName/:filename
+```
+
+#### 파일 목록 API
+
+```javascript
+// 사용 가능한 문서 목록
+const docs = [
+    'DEVELOPER_GUIDE.md',
+    'API_REFERENCE.md',
+    'LLM_GUIDE.md'
+];
+
+// 사용 가능한 SDK 파일
+const sdk = [
+    'sensor-game-sdk.js',
+    'utils.js'
+];
+
+// 사용 가능한 라이브러리
+const libs = [
+    'cannon-es.js',      // 3D 물리 엔진
+    'qrcode.min.js'      // QR 코드 생성
+];
+
+// 사용 가능한 템플릿
+const templates = [
+    'solo-template/',
+    'multiplayer-template/'
+];
+```
+
+#### 빠른 시작 API
+
+```javascript
+// 템플릿 정보 조회
+fetch('/api/templates')
+    .then(response => response.json())
+    .then(templates => {
+        console.log('사용 가능한 템플릿:', templates);
+    });
+
+// 게임 목록 조회
+fetch('/api/games')
+    .then(response => response.json())
+    .then(games => {
+        console.log('등록된 게임:', games);
+    });
+```
+
+## 📊 확장된 관리자 API (NEW)
+
+### 상세 모니터링
+
+관리자 API가 더욱 상세한 정보를 제공합니다.
+
+#### 시스템 성능 지표
+
+```javascript
+// 확장된 서버 상태
+GET /api/admin/status
+
+{
+    "server": {
+        "uptime": 86400000,
+        "version": "4.0.0",
+        "nodeVersion": "18.17.0",
+        "platform": "linux",
+        "memory": {
+            "used": 156.7,
+            "total": 2048,
+            "percentage": 7.7
+        },
+        "cpu": {
+            "usage": 12.5,
+            "cores": 4
+        },
+        "connections": {
+            "total": 8,
+            "pc": 2,
+            "sensor": 4,
+            "admin": 2
+        }
+    },
+    "sessions": {
+        "active": 2,
+        "total": 15,
+        "avgDuration": 1200000
+    },
+    "performance": {
+        "avgLatency": 45,
+        "maxLatency": 120,
+        "minLatency": 23,
+        "messageRate": 150  // 초당 메시지 수
+    }
+}
+```
+
+#### 클라이언트 상세 정보
+
+```javascript
+// 클라이언트별 상세 정보
+{
+    "clients": [
+        {
+            "id": "client-uuid",
+            "type": "pc",
+            "ip": "192.168.1.100",
+            "userAgent": "Chrome/120.0.0.0",
+            "connected": "2024-01-01T10:00:00Z",
+            "lastActivity": "2024-01-01T10:30:00Z",
+            "latency": 45,
+            "messagesReceived": 1500,
+            "messagesSent": 1200,
+            "session": {
+                "sessionId": "session-uuid",
+                "sessionCode": "1234",
+                "gameId": "my-game"
+            }
+        }
+    ]
+}
+```
+
+#### 실시간 알림 시스템
+
+```javascript
+// WebSocket을 통한 실시간 알림
+const adminWS = new WebSocket('ws://localhost:3000');
+
+adminWS.onmessage = (event) => {
+    const message = JSON.parse(event.data);
+    
+    switch(message.type) {
+        case 'client_connected':
+            console.log('새 클라이언트 연결:', message.clientId);
+            break;
+            
+        case 'performance_alert':
+            console.log('성능 경고:', message.metric, message.value);
+            break;
+            
+        case 'error_occurred':
+            console.log('오류 발생:', message.error);
+            break;
+    }
+};
+```
+
+### 고급 제어 기능
+
+```javascript
+// 특정 클라이언트 연결 해제
+POST /api/admin/disconnect
+{
+    "clientId": "client-uuid",
+    "reason": "maintenance"
+}
+
+// 세션 강제 종료
+POST /api/admin/close-session
+{
+    "sessionId": "session-uuid"
+}
+
+// 서버 통계 리셋
+POST /api/admin/reset-stats
+{
+    "resetConnections": true,
+    "resetPerformance": true
+}
+```
+
+---
+
 ## 마무리
 
 이 API 레퍼런스를 통해 센서 게임 허브 v4.0의 모든 기능을 활용할 수 있습니다. 
+
+### 최신 기능 요약
+
+- ✅ **연결 유지 API**: 페이지 이동 시 안정적인 연결 관리
+- ✅ **QR 코드 API**: 자동 QR 코드 생성 및 커스터마이징
+- ✅ **개발자 센터 API**: 완전한 개발 도구 접근
+- ✅ **확장된 관리자 API**: 상세한 모니터링 및 제어
+- ✅ **Cannon-ES 통합**: 로컬 3D 물리 엔진 지원
 
 ### 추가 리소스
 - [개발자 가이드](DEVELOPER_GUIDE.md) - 상세한 개발 방법
 - [LLM 가이드](LLM_GUIDE.md) - AI 코딩 에이전트용 가이드
 - 게임 템플릿 - `templates/` 폴더 참조
+- **개발자 센터** - `/developer` 접속
 
 ### 지원 및 문의
 개발 중 문제가 발생하거나 추가 기능이 필요한 경우, 프로젝트 이슈 트래커를 통해 문의해주세요.
 
-**🎮 센서 게임 허브 v4.0과 함께 혁신적인 센서 게임을 만들어보세요!**
+**🎮 센서 게임 허브 v4.0과 함께 혁신적인 센서 게임을 만들어보세요!** 🚀

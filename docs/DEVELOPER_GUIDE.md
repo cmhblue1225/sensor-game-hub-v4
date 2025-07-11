@@ -2632,6 +2632,276 @@ GET /api/admin/status
 - 프로덕션 환경에서는 적절한 인증 시스템 구현을 권장합니다
 - 민감한 서버 정보는 필터링하여 표시합니다
 
+## 🔄 페이지 이동 및 연결 유지
+
+### 개선된 연결 관리
+
+센서 게임 허브 v4.0는 페이지 간 이동 시에도 안정적인 연결 유지를 제공합니다.
+
+#### 핵심 기능
+
+1. **정상적인 연결 해제**: 페이지 이동 시 beforeunload 이벤트로 서버에 연결 해제 알림
+2. **자동 재연결**: 연결 끊김 감지 시 자동 재연결 시도
+3. **연결 상태 모니터링**: ping/pong으로 실시간 연결 상태 확인
+4. **탭 전환 처리**: visibilitychange 이벤트로 백그라운드/포그라운드 처리
+
+#### 개발자 구현 예시
+
+```javascript
+class MyGame extends SensorGameSDK {
+    constructor() {
+        super({
+            gameId: 'my-game',
+            // 연결 유지 관련 설정
+            autoReconnect: true,
+            connectionTimeout: 5000,
+            maxReconnectAttempts: 3
+        });
+        
+        // 연결 상태 이벤트 처리
+        this.setupConnectionHandlers();
+    }
+    
+    setupConnectionHandlers() {
+        // 연결 해제 시 처리
+        this.on('onDisconnected', () => {
+            this.showConnectionLostUI();
+        });
+        
+        // 재연결 시 처리
+        this.on('onReconnected', () => {
+            this.hideConnectionLostUI();
+            this.syncGameState();
+        });
+        
+        // 연결 상태 변경 시 처리
+        this.on('onConnectionStateChanged', (state) => {
+            this.updateConnectionIndicator(state);
+        });
+    }
+    
+    showConnectionLostUI() {
+        // 연결 끊김 알림 표시
+        const notice = document.createElement('div');
+        notice.id = 'connection-notice';
+        notice.innerHTML = `
+            <div class="notice-content">
+                <p>🔄 서버 연결이 끊어졌습니다. 재연결 중...</p>
+            </div>
+        `;
+        document.body.appendChild(notice);
+    }
+    
+    hideConnectionLostUI() {
+        const notice = document.getElementById('connection-notice');
+        if (notice) notice.remove();
+    }
+    
+    syncGameState() {
+        // 재연결 후 게임 상태 동기화
+        if (this.state.sessionCode) {
+            this.requestGameStateSync();
+        }
+    }
+}
+```
+
+#### 연결 유지 모니터링
+
+```javascript
+// 연결 상태 실시간 확인
+setInterval(() => {
+    if (game.isConnected()) {
+        const latency = game.getLatency();
+        console.log(`연결 상태: 양호 (지연시간: ${latency}ms)`);
+    } else {
+        console.log('연결 상태: 끊어짐 - 재연결 시도 중');
+    }
+}, 10000); // 10초마다 확인
+```
+
+#### 페이지 이동 시 동작 흐름
+
+1. **사용자가 링크 클릭**
+   ```
+   beforeunload 이벤트 발생
+   ↓
+   서버에 client_disconnect 메시지 전송
+   ↓
+   WebSocket 연결 정상 종료
+   ```
+
+2. **새 페이지 로드**
+   ```
+   새 SDK 인스턴스 생성
+   ↓
+   새 WebSocket 연결 설정
+   ↓
+   필요 시 새 세션 생성
+   ```
+
+3. **센서 클라이언트 처리**
+   ```
+   PC 연결 해제 알림 수신
+   ↓
+   "PC와의 연결이 해제되었습니다" 표시
+   ↓
+   새 코드 입력 대기 상태
+   ```
+
+### 최적화 팁
+
+1. **게임 상태 저장**: 페이지 이동 전 중요한 게임 상태를 localStorage에 저장
+2. **연결 복구**: 재연결 시 이전 상태 복원
+3. **사용자 경험**: 연결 상태를 시각적으로 표시
+
+```javascript
+// 게임 상태 저장/복원 예시
+class GameStateManager {
+    saveState() {
+        const gameState = {
+            score: this.score,
+            level: this.level,
+            playerPosition: this.player.position,
+            timestamp: Date.now()
+        };
+        localStorage.setItem('gameState', JSON.stringify(gameState));
+    }
+    
+    loadState() {
+        const saved = localStorage.getItem('gameState');
+        if (saved) {
+            const state = JSON.parse(saved);
+            // 5분 이내의 상태만 복원
+            if (Date.now() - state.timestamp < 300000) {
+                this.restoreGameState(state);
+                return true;
+            }
+        }
+        return false;
+    }
+}
+```
+
+## 🎨 개발자 센터 활용
+
+### 개발자 도구 접속
+
+센서 게임 허브 v4.0는 완전한 개발자 센터를 제공합니다.
+
+#### 접속 방법
+- **URL**: `https://your-domain.com/developer`
+- **로컬**: `http://localhost:3000/developer`
+
+#### 제공 기능
+
+1. **문서 및 가이드**
+   - 개발자 가이드 (이 문서)
+   - API 레퍼런스
+   - LLM 에이전트 가이드
+
+2. **개발 도구**
+   - SDK 다운로드
+   - 유틸리티 라이브러리
+   - Cannon-ES 물리 엔진 (로컬)
+
+3. **템플릿 및 예제**
+   - 솔로 게임 템플릿
+   - 멀티플레이어 게임 템플릿
+   - 라이브 데모 체험
+
+4. **고급 기능**
+   - 다중 센서 지원 가이드
+   - 3D 물리 엔진 튜토리얼
+   - 성능 최적화 팁
+
+#### 빠른 시작 코드
+
+개발자 센터에서 제공하는 복사 가능한 코드 스니펫:
+
+```javascript
+// 1. 템플릿 복사
+cp -r templates/solo-template games/my-new-game
+
+// 2. 게임 메타데이터 설정
+{
+    "id": "my-new-game",
+    "name": "🎯 내 첫 번째 게임",
+    "description": "센서를 활용한 멋진 게임입니다.",
+    "gameType": "solo",
+    "category": "action",
+    "sensorTypes": ["orientation", "accelerometer"]
+}
+
+// 3. 센서 입력 처리
+handleSensorInput(data) {
+    const { gameInput } = data;
+    
+    // 기울기로 플레이어 이동
+    if (gameInput.tilt) {
+        this.player.x += gameInput.tilt.x * 5;
+        this.player.y += gameInput.tilt.y * 5;
+    }
+    
+    // 흔들기로 액션 실행
+    if (gameInput.shake && gameInput.shake.detected) {
+        this.fireWeapon();
+    }
+}
+```
+
+## 📱 QR 코드 시스템
+
+### 개선된 모바일 접속
+
+QR 코드 시스템으로 모바일 센서 클라이언트 접속이 간편해졌습니다.
+
+#### 사용 방법
+
+1. **허브 페이지에서**:
+   - 자동으로 QR 코드 생성됨
+   - 현재 서버 주소를 자동 감지
+   - 센서 클라이언트 URL로 직접 연결
+
+2. **관리자 대시보드에서**:
+   - QR 코드 모니터링
+   - 클라이언트 접속 현황 확인
+   - 실시간 연결 상태 추적
+
+#### 구현 세부사항
+
+```javascript
+// QR 코드 생성 (qrcode-generator 라이브러리 사용)
+function generateQRCode() {
+    const sensorUrl = `${window.location.origin}/sensor`;
+    
+    const qr = qrcode(0, 'M');
+    qr.addData(sensorUrl);
+    qr.make();
+    
+    // Canvas 렌더링
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const modules = qr.getModuleCount();
+    const cellSize = 6;
+    
+    // QR 코드 그리기
+    for (let row = 0; row < modules; row++) {
+        for (let col = 0; col < modules; col++) {
+            if (qr.isDark(row, col)) {
+                ctx.fillRect(col * cellSize, row * cellSize, cellSize, cellSize);
+            }
+        }
+    }
+}
+```
+
+#### 모바일 최적화
+
+- **즉시 연결**: QR 스캔 시 바로 센서 클라이언트로 이동
+- **자동 URL 감지**: 개발/프로덕션 환경 자동 구분
+- **오프라인 지원**: 로컬 라이브러리 사용으로 인터넷 연결 불필요
+
 ## 🌟 마무리
 
 이 가이드를 통해 센서 게임 허브 v4.0에서 완벽한 센서 게임을 개발할 수 있습니다. 
