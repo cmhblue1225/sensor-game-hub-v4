@@ -759,22 +759,49 @@
             const sensorUrl = `${window.location.origin}/sensor`;
             document.getElementById('sensorUrl').textContent = sensorUrl;
             
-            QRCode.toCanvas(document.createElement('canvas'), sensorUrl, {
-                width: 200,
-                height: 200,
-                colorDark: '#1e293b',
-                colorLight: '#ffffff',
-                margin: 2
-            }, (error, canvas) => {
-                if (error) {
-                    addLog(`QR 코드 생성 오류: ${error.message}`, 'error');
-                    return;
+            try {
+                // qrcode-generator 라이브러리 사용
+                const qr = qrcode(0, 'M');
+                qr.addData(sensorUrl);
+                qr.make();
+                
+                // QR 코드를 캔버스로 렌더링
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                const modules = qr.getModuleCount();
+                const cellSize = 8;
+                const margin = 4;
+                
+                canvas.width = canvas.height = modules * cellSize + 2 * margin * cellSize;
+                
+                // 배경 (흰색)
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // QR 코드 모듈 그리기
+                ctx.fillStyle = '#1e293b';
+                for (let row = 0; row < modules; row++) {
+                    for (let col = 0; col < modules; col++) {
+                        if (qr.isDark(row, col)) {
+                            ctx.fillRect(
+                                (col * cellSize) + (margin * cellSize),
+                                (row * cellSize) + (margin * cellSize),
+                                cellSize,
+                                cellSize
+                            );
+                        }
+                    }
                 }
                 
                 const qrContainer = document.getElementById('qrCode');
                 qrContainer.innerHTML = '';
                 qrContainer.appendChild(canvas);
-            });
+                
+                addLog('QR 코드 생성 완료', 'success');
+            } catch (error) {
+                addLog(`QR 코드 생성 오류: ${error.message}`, 'error');
+                console.error('QR code generation error:', error);
+            }
         }
         
         /**

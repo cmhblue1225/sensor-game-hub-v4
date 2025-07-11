@@ -1134,23 +1134,49 @@
         function generateQRCode() {
             const sensorUrl = `${window.location.origin}/sensor`;
             
-            QRCode.toCanvas(document.createElement('canvas'), sensorUrl, {
-                width: 150,
-                height: 150,
-                colorDark: '#1e293b',
-                colorLight: '#ffffff',
-                margin: 2
-            }, (error, canvas) => {
-                if (error) {
-                    console.error('QR 코드 생성 오류:', error);
-                    document.getElementById('qrCode').textContent = 'QR 코드 생성 실패';
-                    return;
+            try {
+                // qrcode-generator 라이브러리 사용
+                const qr = qrcode(0, 'M');
+                qr.addData(sensorUrl);
+                qr.make();
+                
+                // QR 코드를 캔버스로 렌더링
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                const modules = qr.getModuleCount();
+                const cellSize = 6;
+                const margin = 4;
+                
+                canvas.width = canvas.height = modules * cellSize + 2 * margin * cellSize;
+                
+                // 배경 (흰색)
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // QR 코드 모듈 그리기
+                ctx.fillStyle = '#1e293b';
+                for (let row = 0; row < modules; row++) {
+                    for (let col = 0; col < modules; col++) {
+                        if (qr.isDark(row, col)) {
+                            ctx.fillRect(
+                                (col * cellSize) + (margin * cellSize),
+                                (row * cellSize) + (margin * cellSize),
+                                cellSize,
+                                cellSize
+                            );
+                        }
+                    }
                 }
                 
                 const qrContainer = document.getElementById('qrCode');
                 qrContainer.innerHTML = '';
                 qrContainer.appendChild(canvas);
-            });
+                
+                console.log('✅ QR 코드 생성 완료');
+            } catch (error) {
+                console.error('QR 코드 생성 오류:', error);
+                document.getElementById('qrCode').textContent = 'QR 코드 생성 실패';
+            }
         }
 
         // 모달 외부 클릭 시 닫기
@@ -1162,11 +1188,8 @@
         
         // QR 코드 초기화
         document.addEventListener('DOMContentLoaded', () => {
-            // QR 코드 라이브러리 로드 후 생성
-            const script = document.createElement('script');
-            script.src = 'https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js';
-            script.onload = generateQRCode;
-            document.head.appendChild(script);
+            // 페이지 로드 후 QR 코드 생성
+            generateQRCode();
         });
     </script>
 </body>
