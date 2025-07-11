@@ -426,6 +426,19 @@
          */
         document.addEventListener('DOMContentLoaded', () => {
             console.log('🎮 솔로 게임 템플릿 로딩 완료');
+            console.log('🌐 현재 페이지 URL:', window.location.href);
+            
+            // URL 파라미터 강제 추출 및 로깅
+            const urlParams = new URLSearchParams(window.location.search);
+            const sessionCode = urlParams.get('sessionCode');
+            const sessionId = urlParams.get('sessionId');
+            
+            console.log('🔍 페이지 로드 시 URL 파라미터:', {
+                sessionCode,
+                sessionId,
+                search: window.location.search,
+                pathname: window.location.pathname
+            });
             
             // 캔버스 크기 설정
             const canvas = document.getElementById('gameCanvas');
@@ -443,11 +456,30 @@
             const checkGameReady = () => {
                 if (window.gameInstance) {
                     console.log('✅ 게임 인스턴스 준비 완료');
+                    console.log('🔗 게임 인스턴스 연결 상태:', window.gameInstance.state.isConnected);
+                    console.log('📝 게임 인스턴스 세션 정보:', {
+                        sessionCode: window.gameInstance.state.sessionCode,
+                        sessionId: window.gameInstance.state.sessionId
+                    });
                 } else {
                     setTimeout(checkGameReady, 100);
                 }
             };
             checkGameReady();
+            
+            // 10초 후 강제 연결 상태 확인
+            setTimeout(() => {
+                console.log('⏰ 10초 후 연결 상태 체크');
+                if (window.gameInstance) {
+                    console.log('🔗 현재 연결 상태:', window.gameInstance.state.isConnected);
+                    if (!window.gameInstance.state.isConnected) {
+                        console.log('🚨 연결되지 않음! 강제 재연결 시도');
+                        window.gameInstance.connect();
+                    }
+                } else {
+                    console.log('❌ 게임 인스턴스가 없음!');
+                }
+            }, 10000);
         });
         
         // 전역 함수들을 window 객체에 등록

@@ -115,6 +115,17 @@ class SensorTestGame extends SensorGameSDK {
         if (this.state.sessionCode && this.state.sessionId) {
             console.log('🔄 기존 세션 정보 확인:', this.state.sessionCode);
             this.showSessionCode(this.state.sessionCode);
+            
+            // 강제 연결 상태 확인
+            setTimeout(() => {
+                if (!this.state.isConnected) {
+                    console.log('⚠️ 5초 후에도 연결되지 않음, 강제 재연결 시도');
+                    this.connect();
+                }
+            }, 5000);
+        } else {
+            console.log('❌ 게임 페이지에서 세션 정보를 찾을 수 없음!');
+            console.log('🔍 현재 state:', this.state);
         }
         
         // 캔버스 설정
