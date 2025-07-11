@@ -300,7 +300,7 @@ function broadcastToRoom(roomId, message, excludeSessionId = null) {
                 .find(s => s.sessionId === sessionId);
             
             if (sessionData) {
-                const pcClient = clients.get(sessionData.pcClientId);
+                const pcClient = clients.get(sessionData.pcClient);
                 if (pcClient && pcClient.ws.readyState === WebSocket.OPEN) {
                     pcClient.ws.send(JSON.stringify(message));
                 }
@@ -789,22 +789,36 @@ function handleSensorData(clientId, message) {
     const client = clients.get(clientId);
     if (!client || client.type !== 'sensor') return;
     
-    // 센서 클라이언트가 속한 세션 찾기
-    const sessionData = Array.from(sessions.values())
-        .find(s => s.sensorClients.has(clientId));
+    console.log(`📱 센서 데이터 수신: ${clientId}`);
     
-    if (!sessionData) return;
+    // 센서 클라이언트가 속한 세션 찾기 (새 구조)
+    const sessionData = Array.from(sessions.values())
+        .find(s => s.sensorClient === clientId);
+    
+    if (!sessionData) {
+        console.log(`⚠️ 센서 데이터 수신 시 세션을 찾을 수 없음: ${clientId}`);
+        return;
+    }
+    
+    console.log(`🔗 세션 ${sessionData.sessionCode}에서 데이터 수신, PC 클라이언트: ${sessionData.pcClient}`);
     
     // PC 클라이언트로 센서 데이터 전송
-    const pcClient = clients.get(sessionData.pcClientId);
-    if (pcClient && pcClient.ws.readyState === WebSocket.OPEN) {
-        const sensorInfo = sessionData.sensorClients.get(clientId);
-        pcClient.ws.send(JSON.stringify({
-            type: 'sensor_data',
-            sensorType: sensorInfo.sensorType,
-            data: message.data,
-            timestamp: Date.now()
-        }));
+    if (sessionData.pcClient) {
+        const pcClient = clients.get(sessionData.pcClient);
+        if (pcClient && pcClient.ws.readyState === WebSocket.OPEN) {
+            pcClient.ws.send(JSON.stringify({
+                type: 'sensor_data',
+                sensorType: 'primary', // 단일 센서로 고정
+                data: message.data,
+                timestamp: Date.now()
+            }));
+            
+            console.log(`✅ 센서 데이터 PC로 전송 완료`);
+        } else {
+            console.log(`⚠️ PC 클라이언트 연결 없음 또는 닫힘`);
+        }
+    } else {
+        console.log(`⚠️ 세션에 PC 클라이언트가 연결되어 있지 않음`);
     }
 }
 
@@ -817,7 +831,7 @@ function handleCreateRoom(clientId, message) {
     
     // 클라이언트의 세션 찾기
     const sessionData = Array.from(sessions.values())
-        .find(s => s.pcClientId === clientId);
+        .find(s => s.pcClient === clientId);
     
     if (!sessionData) {
         client.ws.send(JSON.stringify({
@@ -849,7 +863,7 @@ function handleJoinRoom(clientId, message) {
     
     // 클라이언트의 세션 찾기
     const sessionData = Array.from(sessions.values())
-        .find(s => s.pcClientId === clientId);
+        .find(s => s.pcClient === clientId);
     
     if (!sessionData) {
         client.ws.send(JSON.stringify({
@@ -876,7 +890,7 @@ function handleStartGame(clientId, message) {
     
     // 호스트인지 확인
     const sessionData = Array.from(sessions.values())
-        .find(s => s.pcClientId === clientId);
+        .find(s => s.pcClient === clientId);
     
     if (!sessionData) return;
     
@@ -905,7 +919,7 @@ function handleGameEvent(clientId, message) {
     if (!client) return;
     
     const sessionData = Array.from(sessions.values())
-        .find(s => s.pcClientId === clientId);
+        .find(s => s.pcClient === clientId);
     
     if (!sessionData || !sessionData.roomId) return;
     
@@ -927,7 +941,7 @@ function handleLeaveRoom(clientId, message) {
     if (!client) return;
     
     const sessionData = Array.from(sessions.values())
-        .find(s => s.pcClientId === clientId);
+        .find(s => s.pcClient === clientId);
     
     if (!sessionData) return;
     
