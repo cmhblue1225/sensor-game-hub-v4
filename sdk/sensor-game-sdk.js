@@ -693,7 +693,8 @@ class SensorGameSDK {
      * 룸 생성 (멀티플레이어)
      */
     createRoom(gameId, roomName, maxPlayers = 4) {
-        if (this.config.gameType !== 'multiplayer') {
+        // 허브는 모든 타입의 룸을 생성할 수 있음
+        if (this.config.gameId !== 'hub' && this.config.gameType !== 'multiplayer') {
             console.warn('솔로 게임에서는 룸을 생성할 수 없습니다.');
             return;
         }
@@ -710,7 +711,8 @@ class SensorGameSDK {
      * 룸 참가 (멀티플레이어)
      */
     joinRoom(roomId, nickname) {
-        if (this.config.gameType !== 'multiplayer') {
+        // 허브는 모든 타입의 룸에 참가할 수 있음
+        if (this.config.gameId !== 'hub' && this.config.gameType !== 'multiplayer') {
             console.warn('솔로 게임에서는 룸에 참가할 수 없습니다.');
             return;
         }
