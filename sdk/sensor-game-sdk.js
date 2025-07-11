@@ -165,12 +165,21 @@ class SensorGameSDK {
                 this.state.isConnected = true;
                 this.reconnectAttempts = 0;
                 
-                // PC 클라이언트로 등록
-                this.send({
+                // PC 클라이언트로 등록 (기존 세션 정보 포함)
+                const registerMessage = {
                     type: 'register_pc',
                     gameMode: this.config.gameType,
                     gameId: this.config.gameId
-                });
+                };
+                
+                // 기존 세션 정보가 있으면 포함
+                if (this.state.sessionCode && this.state.sessionId) {
+                    registerMessage.existingSessionCode = this.state.sessionCode;
+                    registerMessage.existingSessionId = this.state.sessionId;
+                    console.log('🔄 기존 세션 정보와 함께 등록:', this.state.sessionCode);
+                }
+                
+                this.send(registerMessage);
                 
                 this.emit('onConnectionChange', true);
             };
@@ -226,6 +235,10 @@ class SensorGameSDK {
         switch (message.type) {
             case 'session_created':
                 this.handleSessionCreated(message);
+                break;
+                
+            case 'session_restored':
+                this.handleSessionRestored(message);
                 break;
                 
             case 'sensor_connected':
@@ -295,6 +308,33 @@ class SensorGameSDK {
             sessionCode: message.sessionCode,
             gameMode: message.gameMode
         });
+    }
+    
+    /**
+     * 세션 복원 처리
+     */
+    handleSessionRestored(message) {
+        this.state.sessionId = message.sessionId;
+        this.state.sessionCode = message.sessionCode;
+        this.state.sensorConnected = message.sensorConnected || false;
+        
+        console.log(`🔄 세션 복원 완료: ${message.sessionCode}`);
+        
+        // 세션 복원 이벤트 발생 (새 세션 생성과 동일한 인터페이스)
+        this.emit('onSessionCreated', {
+            sessionId: message.sessionId,
+            sessionCode: message.sessionCode,
+            gameMode: message.gameMode,
+            restored: true
+        });
+        
+        // 센서 연결 상태 알림
+        if (message.sensorConnected) {
+            this.emit('onSensorConnected', {
+                sensorType: 'primary',
+                sensorCount: 1
+            });
+        }
     }
     
     /**

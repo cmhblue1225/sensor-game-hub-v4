@@ -170,16 +170,19 @@ class MultiplayerSensorTestGame extends SensorGameSDK {
         
         // 세션 코드 생성
         this.on('onSessionCreated', (data) => {
-            // 기존 세션이 있으면 새 세션 생성 무시
-            if (this.state.sessionCode && this.state.sessionId) {
-                console.log('🔄 기존 세션 있음, 새 세션 생성 무시');
+            console.log('🔑 세션 이벤트 수신:', data.sessionCode, '복원여부:', data.restored);
+            
+            // 새 세션 생성인 경우에만 기존 세션 결래 확인
+            if (!data.restored && this.state.sessionCode && this.state.sessionId && this.state.sessionCode !== data.sessionCode) {
+                console.log('⚠️ 기존 세션과 다른 새 세션 생성 무시:', this.state.sessionCode, '->', data.sessionCode);
                 return;
             }
             
+            // 세션 코드 표시
             this.showSessionCode(data.sessionCode);
             
-            // 새 세션 생성 후 룸 생성 (멀티플레이어 게임)
-            console.log('🆕 새 세션 생성 완료, 룸 생성 시작...');
+            // 룸 생성 (멀티플레이어 게임)
+            console.log('🆕 세션 준비 완료, 룸 생성 시작...');
             this.createRoom('sensor-test-multi', '센서 테스트 룸');
         });
         

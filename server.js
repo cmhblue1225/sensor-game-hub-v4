@@ -676,7 +676,42 @@ function handleRegisterPC(clientId, message) {
     client.type = 'pc';
     client.gameMode = message.gameMode || 'solo';
     
-    // 세션 생성
+    // 기존 세션 정보가 있는지 확인
+    if (message.existingSessionCode && message.existingSessionId) {
+        console.log(`🔄 기존 세션 복원 시도: ${message.existingSessionCode}`);
+        
+        // 기존 세션 찾기
+        const existingSession = Array.from(sessions.values()).find(session => 
+            session.sessionCode === message.existingSessionCode && 
+            session.sessionId === message.existingSessionId
+        );
+        
+        if (existingSession) {
+            console.log(`✅ 기존 세션 발견: ${message.existingSessionCode}`);
+            
+            // 기존 세션에 PC 클라이언트 연결
+            client.sessionId = existingSession.sessionId;
+            client.sessionCode = existingSession.sessionCode;
+            existingSession.pcClient = clientId;
+            
+            // 기존 세션 정보 전송 (새 세션 생성 알림 없이)
+            client.ws.send(JSON.stringify({
+                type: 'session_restored',
+                sessionId: existingSession.sessionId,
+                sessionCode: existingSession.sessionCode,
+                gameMode: client.gameMode,
+                sensorConnected: existingSession.sensorClient !== null
+            }));
+            
+            console.log(`🔗 기존 세션 복원 완료: ${message.existingSessionCode}`);
+            return;
+        } else {
+            console.log(`⚠️ 기존 세션을 찾을 수 없음: ${message.existingSessionCode}`);
+        }
+    }
+    
+    // 기존 세션이 없거나 찾을 수 없는 경우에만 새 세션 생성
+    console.log('🆕 새 세션 생성');
     const result = createSession(clientId, client.gameMode);
     
     if (!result.success) {
