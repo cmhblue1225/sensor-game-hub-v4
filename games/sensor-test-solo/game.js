@@ -107,6 +107,9 @@ class SensorTestGame extends SensorGameSDK {
             console.log('🔄 기존 세션 복원:', sessionCode);
             this.state.sessionCode = sessionCode;
             this.state.sessionId = sessionId;
+            
+            // 기존 세션 코드 즉시 표시
+            this.showSessionCode(sessionCode);
         }
         
         // 캔버스 설정
@@ -180,6 +183,12 @@ class SensorTestGame extends SensorGameSDK {
         
         // 세션 코드 생성
         this.on('onSessionCreated', (data) => {
+            // 기존 세션이 있으면 새 세션 생성 무시
+            if (this.state.sessionCode && this.state.sessionId) {
+                console.log('🔄 기존 세션 있음, 새 세션 생성 무시');
+                return;
+            }
+            
             this.showSessionCode(data.sessionCode);
         });
         

@@ -353,7 +353,17 @@
     <!-- SDK 및 게임 스크립트 -->
     <script src="/sdk/sensor-game-sdk.js"></script>
     <script src="/sdk/utils.js"></script>
-    <script src="game.js"></script>
+    <script>
+        // 현재 게임 ID 추출
+        const gameId = window.location.pathname.split('/').pop().split('?')[0];
+        
+        // 게임 스크립트 동적 로드
+        const script = document.createElement('script');
+        script.src = `/play/${gameId}/game.js`;
+        script.onload = () => console.log('✅ 게임 스크립트 로드 완료');
+        script.onerror = () => console.error('❌ 게임 스크립트 로드 실패');
+        document.head.appendChild(script);
+    </script>
     
     <script>
         // 전역 변수

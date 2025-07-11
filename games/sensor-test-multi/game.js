@@ -93,6 +93,15 @@ class MultiplayerSensorTestGame extends SensorGameSDK {
             console.log('🔄 기존 세션 복원:', sessionCode);
             this.state.sessionCode = sessionCode;
             this.state.sessionId = sessionId;
+            
+            // 기존 세션 코드 즉시 표시
+            this.showSessionCode(sessionCode);
+            
+            // 서버에 기존 세션 복원 요청
+            setTimeout(() => {
+                console.log('🔄 기존 세션으로 룸 생성 시작...');
+                this.createRoom('sensor-test-multi', '센서 테스트 룸');
+            }, 1000);
         }
         
         // 캔버스 설정
@@ -161,10 +170,16 @@ class MultiplayerSensorTestGame extends SensorGameSDK {
         
         // 세션 코드 생성
         this.on('onSessionCreated', (data) => {
+            // 기존 세션이 있으면 새 세션 생성 무시
+            if (this.state.sessionCode && this.state.sessionId) {
+                console.log('🔄 기존 세션 있음, 새 세션 생성 무시');
+                return;
+            }
+            
             this.showSessionCode(data.sessionCode);
             
-            // 세션 생성 후 룸 생성 (멀티플레이어 게임)
-            console.log('세션 생성 완료, 룸 생성 시작...');
+            // 새 세션 생성 후 룸 생성 (멀티플레이어 게임)
+            console.log('🆕 새 세션 생성 완료, 룸 생성 시작...');
             this.createRoom('sensor-test-multi', '센서 테스트 룸');
         });
         
