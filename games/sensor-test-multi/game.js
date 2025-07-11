@@ -93,9 +93,6 @@ class MultiplayerSensorTestGame extends SensorGameSDK {
         // 게임 월드 초기화
         this.initializeGameWorld();
         
-        // 룸 생성 (자동으로 호스트가 됨)
-        this.createRoom('sensor-test-multi', '센서 테스트 룸');
-        
         console.log('✅ 멀티플레이어 센서 테스트 게임 초기화 완료');
     }
     
@@ -154,6 +151,10 @@ class MultiplayerSensorTestGame extends SensorGameSDK {
         // 세션 코드 생성
         this.on('onSessionCreated', (data) => {
             this.showSessionCode(data.sessionCode);
+            
+            // 세션 생성 후 룸 생성 (멀티플레이어 게임)
+            console.log('세션 생성 완료, 룸 생성 시작...');
+            this.createRoom('sensor-test-multi', '센서 테스트 룸');
         });
         
         // 센서 연결
@@ -165,7 +166,10 @@ class MultiplayerSensorTestGame extends SensorGameSDK {
         // 룸 생성 완료
         this.on('onRoomCreated', (data) => {
             console.log('🏠 룸 생성 완료:', data.roomId);
-            this.showLobby([]);
+            // 대기실 표시
+            if (typeof window.showLobby === 'function') {
+                window.showLobby([]);
+            }
         });
         
         // 플레이어 참가
