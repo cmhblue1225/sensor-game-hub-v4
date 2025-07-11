@@ -1,0 +1,45 @@
+{
+    "id": "sensor-test-multi",
+    "name": "🧪 센서 테스트 (멀티)",
+    "description": "최대 4명이 함께 센서를 테스트하고 경쟁할 수 있는 멀티플레이어 게임입니다.",
+    "author": "센서 게임 허브 팀",
+    "version": "1.0.0",
+    "category": "test",
+    "difficulty": "easy",
+    "gameType": "multiplayer",
+    "icon": "🧪",
+    "sensorTypes": ["orientation", "accelerometer", "gyroscope"],
+    "features": ["multiplayer", "sensor-test", "real-time", "competitive"],
+    "minPlayers": 2,
+    "maxPlayers": 4,
+    "estimatedPlayTime": "3-10분",
+    "controls": {
+        "orientation": "기기 기울이기 → 플레이어 볼 이동",
+        "accelerometer": "흔들기 → 파티클 효과",
+        "gyroscope": "회전 → 색상 변경",
+        "keyboard": "시뮬레이션 모드: WASD + 스페이스바 + 화살표"
+    },
+    "requirements": {
+        "sensors": ["orientation"],
+        "permissions": ["deviceorientation", "devicemotion"],
+        "browsers": ["Chrome", "Safari", "Firefox", "Edge"],
+        "platforms": ["iOS", "Android", "Desktop"]
+    },
+    "gameMode": {
+        "type": "test",
+        "description": "여러 플레이어가 동시에 센서를 테스트하고 반응을 확인하는 게임",
+        "objective": "모든 센서의 정상 동작 확인 및 경쟁",
+        "winCondition": "가장 많은 센서 활동을 기록한 플레이어 승리",
+        "timeLimit": "3분"
+    },
+    "multiplayerSettings": {
+        "roomCapacity": 4,
+        "spectatorMode": false,
+        "teamMode": false,
+        "realTimeSync": true,
+        "hostMigration": false
+    },
+    "changelog": {
+        "1.0.0": "멀티플레이어 센서 테스트 게임 초기 릴리즈"
+    }
+}

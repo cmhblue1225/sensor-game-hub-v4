@@ -1,0 +1,37 @@
+{
+    "id": "sensor-test-solo",
+    "name": "🧪 센서 테스트 (솔로)",
+    "description": "센서 입력을 시각적으로 확인하고 테스트할 수 있는 솔로 게임입니다.",
+    "author": "센서 게임 허브 팀",
+    "version": "1.0.0",
+    "category": "test",
+    "difficulty": "easy",
+    "gameType": "solo",
+    "icon": "🧪",
+    "sensorTypes": ["orientation", "accelerometer", "gyroscope"],
+    "features": ["sensor-test", "single-player", "real-time-feedback"],
+    "minPlayers": 1,
+    "maxPlayers": 1,
+    "estimatedPlayTime": "2-5분",
+    "controls": {
+        "orientation": "기기 기울이기 → 빨간 공 이동",
+        "accelerometer": "흔들기 → 파티클 효과",
+        "gyroscope": "회전 → 배경 색상 변경",
+        "keyboard": "시뮬레이션 모드: WASD + 스페이스바 + 화살표"
+    },
+    "requirements": {
+        "sensors": ["orientation"],
+        "permissions": ["deviceorientation", "devicemotion"],
+        "browsers": ["Chrome", "Safari", "Firefox", "Edge"],
+        "platforms": ["iOS", "Android", "Desktop"]
+    },
+    "gameMode": {
+        "type": "test",
+        "description": "모든 센서 입력을 실시간으로 시각화하여 테스트",
+        "objective": "센서 동작 확인 및 감도 테스트",
+        "winCondition": "모든 센서 정상 동작 확인"
+    },
+    "changelog": {
+        "1.0.0": "센서 테스트 게임 초기 릴리즈"
+    }
+}
