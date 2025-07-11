@@ -219,10 +219,10 @@ class SensorTestGame extends SensorGameSDK {
             this.updateSensorStatus(true);
             this.showMessage('📱 센서 연결됨! 게임을 시작합니다.', 'success');
             
-            // 센서 테스트를 위해 즉시 게임 시작
+            // 센서 테스트를 위해 즉시 게임플레이 시작
             console.log('🎮 센서 연결됨 - 즉시 게임 시작');
             setTimeout(() => {
-                this.startGame();
+                this.start();
             }, 1500);
         });
         
@@ -248,6 +248,26 @@ class SensorTestGame extends SensorGameSDK {
      * 테스트 환경 초기화
      */
     initializeTestEnvironment() {
+        // visualElements가 없으면 다시 초기화
+        if (!this.visualElements) {
+            this.visualElements = {
+                ball: {
+                    x: 0,
+                    y: 0,
+                    radius: 25,
+                    color: '#ef4444',
+                    trail: []
+                },
+                backgroundColor: '#0f172a',
+                particles: [],
+                sensorHistory: {
+                    orientation: [],
+                    accelerometer: [],
+                    gyroscope: []
+                }
+            };
+        }
+        
         // 테스트 볼 궤적 초기화
         this.visualElements.ball.trail = [];
         
@@ -347,10 +367,25 @@ class SensorTestGame extends SensorGameSDK {
         this.gameState.gameStartTime = Date.now();
         this.updateGameStatus('게임 진행 중...');
         
+        console.log('🚀 게임 시작 - 상태:', {
+            isPlaying: this.gameState.isPlaying,
+            isPaused: this.gameState.isPaused,
+            hasCanvas: !!this.canvas,
+            hasCtx: !!this.ctx
+        });
+        
         // 게임 루프 시작
         this.startGameLoop();
         
-        console.log('🚀 게임 시작');
+        console.log('✅ 게임 루프 시작됨');
+        
+        // 테스트 볼 초기 위치 설정
+        if (this.canvas) {
+            const rect = this.canvas.getBoundingClientRect();
+            this.visualElements.ball.x = rect.width / 2;
+            this.visualElements.ball.y = rect.height / 2;
+            console.log('🎾 테스트 볼 위치 설정:', this.visualElements.ball);
+        }
     }
     
     /**
@@ -946,13 +981,23 @@ class SensorTestGame extends SensorGameSDK {
      * 센서 테스트 렌더링
      */
     render() {
-        if (!this.ctx || !this.canvas) return;
+        if (!this.ctx || !this.canvas) {
+            console.log('❌ 렌더링 불가:', { hasCtx: !!this.ctx, hasCanvas: !!this.canvas });
+            return;
+        }
         
         const rect = this.canvas.getBoundingClientRect();
         
         // 배경 청소 (자이로스코프 반응 색상)
         this.ctx.fillStyle = this.visualElements.backgroundColor;
-        this.ctx.fillRect(0, 0, rect.width, rect.height);
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        
+        // 렌더링 카운터 (디버깅)
+        if (!this.renderCount) this.renderCount = 0;
+        this.renderCount++;
+        if (this.renderCount % 60 === 1) { // 1초마다 한 번씩 로그
+            console.log('🎨 렌더링 중:', this.renderCount, '프레임');
+        }
         
         // 렌더링 순서
         this.renderBallTrail();
