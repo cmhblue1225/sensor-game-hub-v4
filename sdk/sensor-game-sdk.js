@@ -177,13 +177,23 @@ class SensorGameSDK {
                     gameId: this.config.gameId
                 };
                 
+                console.log('📝 PC 등록 메시지 준비:', {
+                    gameId: this.config.gameId,
+                    gameType: this.config.gameType,
+                    currentSessionCode: this.state.sessionCode,
+                    currentSessionId: this.state.sessionId
+                });
+                
                 // 기존 세션 정보가 있으면 포함
                 if (this.state.sessionCode && this.state.sessionId) {
                     registerMessage.existingSessionCode = this.state.sessionCode;
                     registerMessage.existingSessionId = this.state.sessionId;
                     console.log('🔄 기존 세션 정보와 함께 등록:', this.state.sessionCode);
+                } else {
+                    console.log('🆕 새 세션 생성으로 PC 등록');
                 }
                 
+                console.log('📤 전송할 등록 메시지:', registerMessage);
                 this.send(registerMessage);
                 
                 this.emit('onConnectionChange', true);

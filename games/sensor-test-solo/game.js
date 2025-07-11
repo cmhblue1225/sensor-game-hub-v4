@@ -11,6 +11,8 @@ class SensorTestGame extends SensorGameSDK {
         const existingSessionId = urlParams.get('sessionId');
         
         console.log('🔍 URL 파라미터 추출:', { existingSessionCode, existingSessionId });
+        console.log('🌐 현재 URL:', window.location.href);
+        console.log('🔍 URL 검색 파라미터:', window.location.search);
         
         super({
             gameId: 'sensor-test-solo',

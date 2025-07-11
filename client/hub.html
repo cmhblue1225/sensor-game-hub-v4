@@ -871,7 +871,16 @@
                 // 세션 정보와 함께 게임 페이지로 이동
                 const sessionCode = sdk.state.sessionCode;
                 const sessionId = sdk.state.sessionId;
-                window.location.href = `/play/${game.id}?sessionCode=${sessionCode}&sessionId=${sessionId}`;
+                const targetUrl = `/play/${game.id}?sessionCode=${sessionCode}&sessionId=${sessionId}`;
+                
+                console.log('🎁 게임 페이지로 이동:', {
+                    gameId: game.id,
+                    sessionCode,
+                    sessionId,
+                    targetUrl
+                });
+                
+                window.location.href = targetUrl;
             }
         }
 
