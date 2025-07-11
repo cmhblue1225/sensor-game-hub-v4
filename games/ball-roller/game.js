@@ -30,6 +30,7 @@ class BallRollerGame extends SensorGameSDK {
     init() {
         this.setupCanvas();
         this.setupCallbacks();
+        this.resizeCanvas(); // Initial call to set canvas size and ball position
         this.resetGame();
     }
 
@@ -37,21 +38,22 @@ class BallRollerGame extends SensorGameSDK {
         this.canvas = document.getElementById('gameCanvas');
         this.ctx = this.canvas.getContext('2d');
 
-        const resizeCanvas = () => {
-            const dpr = window.devicePixelRatio || 1;
-            const rect = this.canvas.getBoundingClientRect();
+        window.addEventListener('resize', () => this.resizeCanvas());
+    }
 
-            this.canvas.width = rect.width * dpr;
-            this.canvas.height = rect.height * dpr;
-            this.ctx.scale(dpr, dpr);
+    resizeCanvas() {
+        const dpr = window.devicePixelRatio || 1;
+        const rect = this.canvas.getBoundingClientRect();
 
-            // Center the ball initially
+        this.canvas.width = rect.width * dpr;
+        this.canvas.height = rect.height * dpr;
+        this.ctx.scale(dpr, dpr);
+
+        // Center the ball initially or adjust its position if already playing
+        if (!this.gameState.isPlaying) {
             this.gameState.ball.x = this.canvas.width / (2 * dpr);
             this.gameState.ball.y = this.canvas.height / (2 * dpr);
-        };
-
-        resizeCanvas();
-        window.addEventListener('resize', resizeCanvas);
+        }
     }
 
     setupCallbacks() {
@@ -91,8 +93,10 @@ class BallRollerGame extends SensorGameSDK {
 
     resetGame() {
         this.gameState.isPlaying = false;
-        this.gameState.ball.x = this.canvas.width / (2 * (window.devicePixelRatio || 1));
-        this.gameState.ball.y = this.canvas.height / (2 * (window.devicePixelRatio || 1));
+        // Use current canvas dimensions for centering
+        const dpr = window.devicePixelRatio || 1;
+        this.gameState.ball.x = this.canvas.width / (2 * dpr);
+        this.gameState.ball.y = this.canvas.height / (2 * dpr);
         this.gameState.ball.vx = 0;
         this.gameState.ball.vy = 0;
         document.getElementById('gameStatus').textContent = '센서 연결 대기중...';
@@ -159,4 +163,4 @@ class BallRollerGame extends SensorGameSDK {
 }
 
 // Instantiate the game
-new BallRollerGame();
+window.game = new BallRollerGame();
