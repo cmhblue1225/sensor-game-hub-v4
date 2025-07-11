@@ -157,7 +157,7 @@ class MultiplayerSensorTestGame extends SensorGameSDK {
     setupCallbacks() {
         // 센서 데이터 수신
         this.on('onSensorData', (data) => {
-            if (this.gameState.isPlaying) {
+            if (this.gameState && this.gameState.isPlaying) {
                 this.handleSensorInput(data);
             }
         });
