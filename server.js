@@ -15,7 +15,7 @@ const { v4: uuidv4 } = require('uuid');
 
 // 환경 설정
 require('dotenv').config();
-const PORT = process.env.PORT || 3000;
+const PORT = parseInt(process.env.PORT, 10) || 3000;
 const HOST = process.env.HOST || '0.0.0.0';
 
 // Express 앱 설정
