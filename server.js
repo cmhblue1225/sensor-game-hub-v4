@@ -183,6 +183,60 @@ function connectSensorToSession(sessionCode, sensorClientId, sensorType = 'prima
 }
 
 /**
+ * 유령 세션 정리 (PC와 센서 모두 연결이 끊어진 세션들 제거)
+ */
+function cleanupGhostSessions() {
+    const beforeCount = sessions.size;
+    let removedCount = 0;
+    
+    console.log(`🧹 유령 세션 정리 시작 (현재 세션 수: ${beforeCount})`);
+    
+    // 세션 상태 출력 (정리 전)
+    if (sessions.size > 0) {
+        console.log('📊 현재 세션 상태:');
+        sessions.forEach((session, code) => {
+            const pcExists = session.pcClient && clients.has(session.pcClient);
+            const sensorExists = session.sensorClient && clients.has(session.sensorClient);
+            console.log(`  ${code}: PC=${session.pcClient ? (pcExists ? '✅' : '❌끊어짐') : 'null'}, 센서=${session.sensorClient ? (sensorExists ? '✅' : '❌끊어짐') : 'null'}`);
+        });
+    }
+    
+    // 유령 세션 찾기 및 제거
+    for (const [sessionCode, session] of sessions.entries()) {
+        const pcExists = session.pcClient && clients.has(session.pcClient);
+        const sensorExists = session.sensorClient && clients.has(session.sensorClient);
+        
+        // PC와 센서 모두 연결이 끊어졌거나 null인 경우
+        if (!pcExists && !sensorExists) {
+            console.log(`🗑️ 유령 세션 제거: ${sessionCode} (PC=${session.pcClient}, 센서=${session.sensorClient})`);
+            sessions.delete(sessionCode);
+            usedCodes.delete(sessionCode);
+            removedCount++;
+        }
+    }
+    
+    const afterCount = sessions.size;
+    
+    if (removedCount > 0) {
+        console.log(`✅ 유령 세션 정리 완료: ${removedCount}개 제거 (${beforeCount} → ${afterCount})`);
+    } else {
+        console.log(`✅ 유령 세션 정리 완료: 제거할 세션 없음 (${beforeCount}개 세션 유지)`);
+    }
+    
+    // 정리 후 남은 세션 상태 출력
+    if (sessions.size > 0) {
+        console.log('📊 정리 후 세션 상태:');
+        sessions.forEach((session, code) => {
+            const pcExists = session.pcClient && clients.has(session.pcClient);
+            const sensorExists = session.sensorClient && clients.has(session.sensorClient);
+            console.log(`  ${code}: PC=${session.pcClient ? (pcExists ? '✅' : '❌끊어짐') : 'null'}, 센서=${session.sensorClient ? (sensorExists ? '✅' : '❌끊어짐') : 'null'}`);
+        });
+    }
+    
+    return removedCount;
+}
+
+/**
  * 멀티플레이어 룸 생성
  */
 function createRoom(hostSessionId, gameId, roomName, maxPlayers = 4) {
@@ -678,12 +732,6 @@ function handleRegisterPC(clientId, message) {
         console.log(`🔄 기존 세션 복원 시도: ${message.existingSessionCode} / ${message.existingSessionId}`);
         console.log(`📊 현재 전체 세션 수: ${sessions.size}`);
         
-        // 디버깅: 모든 세션 목록 출력
-        console.log('📄 전체 세션 목록:');
-        sessions.forEach((session, key) => {
-            console.log(`  - ${key}: 코드=${session.sessionCode}, ID=${session.sessionId}, PC=${session.pcClient}, 센서=${session.sensorClient}`);
-        });
-        
         // 기존 세션 찾기
         const existingSession = Array.from(sessions.values()).find(session => 
             session.sessionCode === message.existingSessionCode && 
@@ -719,6 +767,9 @@ function handleRegisterPC(clientId, message) {
             }));
             
             console.log(`🔗 기존 세션 복원 완료: ${message.existingSessionCode}`);
+            
+            // 복원 후 업데이트된 세션 상태 출력
+            console.log(`🔄 복원된 세션 상태: 코드=${existingSession.sessionCode}, PC=${existingSession.pcClient}, 센서=${existingSession.sensorClient}`);
             return;
         } else {
             console.log(`⚠️ 기존 세션을 찾을 수 없음: ${message.existingSessionCode}`);
@@ -727,6 +778,9 @@ function handleRegisterPC(clientId, message) {
     } else {
         console.log('🆕 기존 세션 정보 없음, 새 세션 생성 예정');
     }
+    
+    // 새 세션 생성 전 유령 세션 정리
+    cleanupGhostSessions();
     
     // 기존 세션이 없거나 찾을 수 없는 경우에만 새 세션 생성
     console.log('🆕 새 세션 생성');
@@ -1065,6 +1119,11 @@ function handleDisconnect(clientId) {
         type: 'client_disconnected',
         clientId: clientId
     });
+    
+    // 연결 해제 후 유령 세션 정리 (5초 지연)
+    setTimeout(() => {
+        cleanupGhostSessions();
+    }, 5000);
 }
 
 // ========== 관리자 기능 ==========
@@ -1257,6 +1316,7 @@ function cleanupEmptyRooms() {
 // 정리 작업 스케줄링
 setInterval(cleanupInactiveSessions, 5 * 60 * 1000); // 5분마다
 setInterval(cleanupEmptyRooms, 1 * 60 * 1000); // 1분마다
+setInterval(cleanupGhostSessions, 2 * 60 * 1000); // 2분마다 유령 세션 정리
 
 // ========== 서버 시작 ==========
 
