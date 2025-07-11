@@ -881,16 +881,17 @@ class MultiplayerSensorTestGame extends SensorGameSDK {
     }
 }
 
-// DOM 로드 완료 시 게임 초기화
-document.addEventListener('DOMContentLoaded', () => {
-    console.log('🧪 멀티플레이어 센서 테스트 게임 로딩 완료');
+// 게임 인스턴스 생성 및 초기화 (즉시 실행)
+console.log('🧪 멀티플레이어 센서 테스트 게임 로딩 완료');
+
+try {
+    console.log('🚀 게임 인스턴스 생성 시도...');
+    window.gameInstance = new MultiplayerSensorTestGame();
+    window.game = window.gameInstance; // 호환성을 위한 별칭
     
-    try {
-        window.gameInstance = new MultiplayerSensorTestGame();
-        window.game = window.gameInstance; // 호환성을 위한 별칭
-        
-        console.log('✅ 멀티플레이어 센서 테스트 게임 인스턴스 생성 완료');
-    } catch (error) {
-        console.error('❌ 멀티플레이어 센서 테스트 게임 초기화 실패:', error);
-    }
-});
+    console.log('✅ 멀티플레이어 센서 테스트 게임 인스턴스 생성 완룼');
+    console.log('🔗 인스턴스 연결 상태:', window.gameInstance.state.isConnected);
+} catch (error) {
+    console.error('❌ 멀티플레이어 센서 테스트 게임 초기화 실패:', error);
+    console.error('❌ 오류 상세:', error.stack);
+}
