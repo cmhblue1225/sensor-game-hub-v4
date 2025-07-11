@@ -86,7 +86,14 @@ class SensorTestGame extends SensorGameSDK {
             accelerometer: { x: 0, y: 0, z: 0, shake: false },
             gyroscope: { x: 0, y: 0, z: 0 },
             lastUpdate: 0,
-            maxValues: { accel: 0, gyro: 0 }
+            maxValues: { accel: 0, gyro: 0 },
+            // 센서 데이터 수신 감시
+            monitoring: {
+                lastDataTime: 0,
+                dataReceived: false,
+                noDataWarningShown: false,
+                checkInterval: null
+            }
         };
         
         // 플레이어 객체 (미리 초기화)
@@ -233,12 +240,18 @@ class SensorTestGame extends SensorGameSDK {
             if (!this.gameLoopId) {
                 this.startGameLoop();
             }
+            
+            // 센서 데이터 수신 감시 시작
+            this.startSensorMonitoring();
         });
         
         // 센서 연결 해제
         this.on('onSensorDisconnected', () => {
             this.updateSensorStatus(false);
             this.showMessage('📱 센서 연결 해제됨', 'warning');
+            
+            // 센서 데이터 수신 감시 중단
+            this.stopSensorMonitoring();
         });
         
         // 보정 완료
@@ -459,11 +472,139 @@ class SensorTestGame extends SensorGameSDK {
     }
     
     /**
+     * 센서 데이터 유효성 검사
+     */
+    validateSensorData(data) {
+        if (!data) {
+            console.error('❌ 센서 데이터가 null 또는 undefined입니다');
+            return false;
+        }
+        
+        const { gameInput, rawData, sensorType } = data;
+        
+        // 기본 구조 검사
+        if (!gameInput && !rawData) {
+            console.error('❌ 센서 데이터가 비어있습니다:', data);
+            return false;
+        }
+        
+        // 센서 타입 검사
+        if (!sensorType) {
+            console.warn('⚠️ 센서 타입이 지정되지 않았습니다');
+        }
+        
+        // gameInput 상세 검사
+        if (gameInput) {
+            const hasValidData = gameInput.tilt || gameInput.movement || gameInput.rotation || gameInput.shake;
+            if (!hasValidData) {
+                console.warn('⚠️ gameInput이 있지만 유효한 센서 값이 없습니다:', gameInput);
+                return false;
+            }
+            
+            // 각 센서 값 검사
+            if (gameInput.tilt) {
+                if (typeof gameInput.tilt.x !== 'number' || typeof gameInput.tilt.y !== 'number') {
+                    console.error('❌ 방향 센서 값이 올바르지 않습니다:', gameInput.tilt);
+                    return false;
+                }
+            }
+            
+            if (gameInput.movement) {
+                if (typeof gameInput.movement.x !== 'number' || 
+                    typeof gameInput.movement.y !== 'number' || 
+                    typeof gameInput.movement.z !== 'number') {
+                    console.error('❌ 가속도계 값이 올바르지 않습니다:', gameInput.movement);
+                    return false;
+                }
+            }
+            
+            if (gameInput.rotation) {
+                if (typeof gameInput.rotation.x !== 'number' || 
+                    typeof gameInput.rotation.y !== 'number' || 
+                    typeof gameInput.rotation.z !== 'number') {
+                    console.error('❌ 자이로스코프 값이 올바르지 않습니다:', gameInput.rotation);
+                    return false;
+                }
+            }
+        }
+        
+        return true;
+    }
+    
+    /**
+     * 센서 데이터 수신 감시 시작
+     */
+    startSensorMonitoring() {
+        console.log('🔍 센서 데이터 수신 감시 시작');
+        
+        // 기존 감시 중단
+        if (this.sensorTest.monitoring.checkInterval) {
+            clearInterval(this.sensorTest.monitoring.checkInterval);
+        }
+        
+        // 초기화
+        this.sensorTest.monitoring.lastDataTime = Date.now();
+        this.sensorTest.monitoring.dataReceived = false;
+        this.sensorTest.monitoring.noDataWarningShown = false;
+        
+        // 5초마다 센서 데이터 수신 상태 확인
+        this.sensorTest.monitoring.checkInterval = setInterval(() => {
+            this.checkSensorDataReceived();
+        }, 5000);
+    }
+    
+    /**
+     * 센서 데이터 수신 상태 확인
+     */
+    checkSensorDataReceived() {
+        const now = Date.now();
+        const timeSinceLastData = now - this.sensorTest.monitoring.lastDataTime;
+        
+        if (!this.sensorTest.monitoring.dataReceived || timeSinceLastData > 10000) {
+            // 10초 동안 데이터 수신이 없으면 경고
+            if (!this.sensorTest.monitoring.noDataWarningShown) {
+                console.warn('⚠️ 센서 데이터가 수신되지 않고 있습니다');
+                console.warn('📱 모바일 디바이스에서 다음을 확인해주세요:');
+                console.warn('   1. 브라우저가 센서 권한을 허용했는지 확인');
+                console.warn('   2. 디바이스를 실제로 움직이고 있는지 확인');
+                console.warn('   3. HTTPS 연결 상태인지 확인');
+                console.warn('   4. 브라우저가 최신 버전인지 확인');
+                
+                this.sensorTest.monitoring.noDataWarningShown = true;
+                this.showMessage('⚠️ 센서 데이터가 수신되지 않습니다. 디바이스를 움직여보세요.', 'warning');
+            }
+        } else {
+            // 데이터 수신 중이면 경고 플래그 리셋
+            this.sensorTest.monitoring.noDataWarningShown = false;
+        }
+    }
+    
+    /**
+     * 센서 데이터 수신 감시 중단
+     */
+    stopSensorMonitoring() {
+        if (this.sensorTest.monitoring.checkInterval) {
+            clearInterval(this.sensorTest.monitoring.checkInterval);
+            this.sensorTest.monitoring.checkInterval = null;
+        }
+        console.log('🔍 센서 데이터 수신 감시 중단');
+    }
+    
+    /**
      * 센서 입력 처리 - 모든 센서 데이터 시각화
      */
     handleSensorInput(data) {
         const { gameInput, rawData, sensorType } = data;
         this.sensorTest.lastUpdate = Date.now();
+        
+        // 센서 데이터 수신 감시 업데이트
+        this.sensorTest.monitoring.lastDataTime = Date.now();
+        this.sensorTest.monitoring.dataReceived = true;
+        
+        // 센서 데이터 유효성 검사
+        if (!this.validateSensorData(data)) {
+            return;
+        }
         
         console.log('📱 센서 데이터 수신:', { gameInput, sensorType });
         
