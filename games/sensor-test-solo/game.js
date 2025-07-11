@@ -89,6 +89,16 @@ class SensorTestGame extends SensorGameSDK {
             maxValues: { accel: 0, gyro: 0 }
         };
         
+        // 플레이어 객체 (미리 초기화)
+        this.player = {
+            x: 400,
+            y: 300,
+            velocity: { x: 0, y: 0 },
+            trail: [],
+            radius: 20,
+            color: '#3b82f6'
+        };
+        
         // 렌더링
         this.canvas = null;
         this.ctx = null;
@@ -187,11 +197,10 @@ class SensorTestGame extends SensorGameSDK {
      * SDK 콜백 설정
      */
     setupCallbacks() {
-        // 센서 데이터 수신
+        // 센서 데이터 수신 (센서 테스트를 위해 항상 처리)
         this.on('onSensorData', (data) => {
-            if (this.gameState && this.gameState.isPlaying) {
-                this.handleSensorInput(data);
-            }
+            // 센서 테스트 모드에서는 게임 상태와 관계없이 항상 처리
+            this.handleSensorInput(data);
         });
         
         // 연결 상태 변경
@@ -217,13 +226,13 @@ class SensorTestGame extends SensorGameSDK {
         this.on('onSensorConnected', (data) => {
             this.hideSessionCode();
             this.updateSensorStatus(true);
-            this.showMessage('📱 센서 연결됨! 게임을 시작합니다.', 'success');
+            this.showMessage('📱 센서 연결됨! 센서 테스트를 시작합니다.', 'success');
             
-            // 센서 테스트를 위해 즉시 게임플레이 시작
-            console.log('🎮 센서 연결됨 - 즉시 게임 시작');
-            setTimeout(() => {
-                this.start();
-            }, 1500);
+            // 센서 테스트를 위해 즉시 렌더링 시작 (게임 시작 없이)
+            console.log('🎮 센서 연결됨 - 렌더링 시작');
+            if (!this.gameLoopId) {
+                this.startGameLoop();
+            }
         });
         
         // 센서 연결 해제
@@ -693,11 +702,10 @@ class SensorTestGame extends SensorGameSDK {
         this.lastFrameTime = performance.now();
         
         const gameLoop = (currentTime) => {
-            if (this.gameState.isPlaying && !this.gameState.isPaused) {
-                this.update(currentTime);
-                this.render();
-                this.gameLoopId = requestAnimationFrame(gameLoop);
-            }
+            // 센서 테스트를 위해 게임 상태와 관계없이 항상 렌더링
+            this.update(currentTime);
+            this.render();
+            this.gameLoopId = requestAnimationFrame(gameLoop);
         };
         
         this.gameLoopId = requestAnimationFrame(gameLoop);
@@ -752,6 +760,21 @@ class SensorTestGame extends SensorGameSDK {
      * 물리 계산
      */
     updatePhysics() {
+        // player 객체가 없거나 velocity가 없으면 초기화
+        if (!this.player || !this.player.velocity) {
+            const rect = this.canvas?.getBoundingClientRect() || { width: 800, height: 600 };
+            this.player = {
+                x: rect.width / 2,
+                y: rect.height / 2,
+                velocity: { x: 0, y: 0 },
+                trail: [],
+                radius: 20,
+                color: '#3b82f6'
+            };
+            console.log('⚠️ updatePhysics에서 player 객체 재초기화');
+            return;
+        }
+        
         const rect = this.canvas?.getBoundingClientRect() || { width: 800, height: 600 };
         
         // 속도 제한
