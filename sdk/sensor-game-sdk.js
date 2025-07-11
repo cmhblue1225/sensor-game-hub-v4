@@ -36,11 +36,11 @@ class SensorGameSDK {
             ...config
         };
         
-        // 상태 관리
+        // 상태 관리 (기존 세션 정보 포함)
         this.state = {
             isConnected: false,
-            sessionId: null,
-            sessionCode: null,
+            sessionId: config.existingSessionId || null,
+            sessionCode: config.existingSessionCode || null,
             sensorConnected: false,
             sensorCount: 0,
             gameMode: this.config.gameType,
@@ -49,6 +49,11 @@ class SensorGameSDK {
             players: new Map(),
             gameStarted: false
         };
+        
+        // 기존 세션 정보 로깅
+        if (this.state.sessionCode && this.state.sessionId) {
+            console.log('🔄 SDK 생성자에서 기존 세션 정보 설정:', this.state.sessionCode);
+        }
         
         // 센서 데이터
         this.sensorData = {
@@ -609,10 +614,11 @@ class SensorGameSDK {
             this.keyboardState[e.code] = false;
         });
         
-        // 페이지 이동/종료 시 연결 정리
-        window.addEventListener('beforeunload', () => {
-            this.handlePageUnload();
-        });
+        // 브라우저 종료 시에만 연결 정리 (페이지 이동 시에는 연결 유지)
+        // beforeunload 제거: 허브→게임 페이지 이동 시 연결 끊어짐 방지
+        // window.addEventListener('beforeunload', () => {
+        //     this.handlePageUnload();
+        // });
         
         // 다른 탭/윈도우로 이동 시 연결 유지 처리
         document.addEventListener('visibilitychange', () => {
@@ -895,7 +901,7 @@ class SensorGameSDK {
         try {
             // 서버에 정상적인 연결 해제 알림
             if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-                this.sendMessage({
+                this.send({
                     type: 'client_disconnect',
                     reason: 'page_unload',
                     sessionId: this.state.sessionId,
@@ -925,7 +931,7 @@ class SensorGameSDK {
             }, 1000);
         } else if (this.ws && this.ws.readyState === WebSocket.OPEN) {
             // 연결이 살아있는지 핑 테스트
-            this.sendMessage({
+            this.send({
                 type: 'ping',
                 timestamp: Date.now()
             });

@@ -5,6 +5,13 @@
 
 class SensorTestGame extends SensorGameSDK {
     constructor() {
+        // URL 파라미터에서 세션 정보 미리 추출
+        const urlParams = new URLSearchParams(window.location.search);
+        const existingSessionCode = urlParams.get('sessionCode');
+        const existingSessionId = urlParams.get('sessionId');
+        
+        console.log('🔍 URL 파라미터 추출:', { existingSessionCode, existingSessionId });
+        
         super({
             gameId: 'sensor-test-solo',
             gameName: '센서 테스트 (솔로)',
@@ -23,7 +30,11 @@ class SensorTestGame extends SensorGameSDK {
             // 데이터 처리 설정
             smoothingFactor: 1,
             deadzone: 0.05,
-            updateRate: 60
+            updateRate: 60,
+            
+            // 기존 세션 정보 전달
+            existingSessionCode,
+            existingSessionId
         });
         
         // 게임 상태
@@ -98,18 +109,10 @@ class SensorTestGame extends SensorGameSDK {
     init() {
         console.log('🧪 센서 테스트 게임 초기화');
         
-        // URL 파라미터에서 세션 정보 추출
-        const urlParams = new URLSearchParams(window.location.search);
-        const sessionCode = urlParams.get('sessionCode');
-        const sessionId = urlParams.get('sessionId');
-        
-        if (sessionCode && sessionId) {
-            console.log('🔄 기존 세션 복원:', sessionCode);
-            this.state.sessionCode = sessionCode;
-            this.state.sessionId = sessionId;
-            
-            // 기존 세션 코드 즉시 표시
-            this.showSessionCode(sessionCode);
+        // 기존 세션 정보가 있으면 즉시 표시
+        if (this.state.sessionCode && this.state.sessionId) {
+            console.log('🔄 기존 세션 정보 확인:', this.state.sessionCode);
+            this.showSessionCode(this.state.sessionCode);
         }
         
         // 캔버스 설정

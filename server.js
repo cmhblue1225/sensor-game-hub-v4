@@ -99,8 +99,8 @@ function createSession(pcClientId, gameMode = 'solo') {
         const sessionData = {
             sessionId,
             sessionCode,
-            pcClientId,
-            sensorClients: new Map(), // sensorId -> sensorData (다중 센서 지원)
+            pcClient: pcClientId, // 일관성 있게 pcClient로 수정
+            sensorClient: null, // 단일 센서 로 단순화
             gameMode, // 'solo' 또는 'multiplayer'
             roomId: null,
             createdAt: Date.now(),
@@ -144,30 +144,27 @@ function connectSensorToSession(sessionCode, sensorClientId, sensorType = 'prima
         return { success: false, error: '비활성화된 세션입니다.' };
     }
     
-    // 다중 센서 지원 확인
-    if (sessionData.sensorClients.size >= 2) {
-        return { success: false, error: '세션에 이미 최대 센서 개수가 연결되어 있습니다.' };
+    // 단일 센서 지원 확인
+    if (sessionData.sensorClient) {
+        return { success: false, error: '세션에 이미 센서가 연결되어 있습니다.' };
     }
     
-    // 센서 클라이언트 정보 저장
-    const sensorData = {
-        clientId: sensorClientId,
-        sensorType, // 'primary', 'secondary'
-        connectedAt: Date.now(),
-        lastActivity: Date.now()
-    };
-    
-    sessionData.sensorClients.set(sensorClientId, sensorData);
+    // 센서 클라이언트 연결 (단일 센서)
+    sessionData.sensorClient = sensorClientId;
     sessionData.lastActivity = Date.now();
     
+    console.log(`🔗 센서 클라이언트 연결: ${sessionCode} <- ${sensorClientId}`);
+    
     // PC 클라이언트에 센서 연결 알림
-    const pcClient = clients.get(sessionData.pcClientId);
-    if (pcClient && pcClient.ws.readyState === WebSocket.OPEN) {
-        pcClient.ws.send(JSON.stringify({
-            type: 'sensor_connected',
-            sensorType,
-            sensorCount: sessionData.sensorClients.size
-        }));
+    if (sessionData.pcClient) {
+        const pcClient = clients.get(sessionData.pcClient);
+        if (pcClient && pcClient.ws.readyState === WebSocket.OPEN) {
+            pcClient.ws.send(JSON.stringify({
+                type: 'sensor_connected',
+                sensorType,
+                sensorCount: 1
+            }));
+        }
     }
     
     // 센서 클라이언트에 연결 확인
@@ -554,7 +551,7 @@ wss.on('connection', (ws, req) => {
     clients.set(clientId, clientData);
     serverStats.totalConnections++;
     
-    console.log(`🔗 클라이언트 연결: ${clientId}`);
+    console.log(`🔗 클라이언트 연결: ${clientId} (전체 ${clients.size}개)`);
     
     // 연결 확인 메시지 전송
     ws.send(JSON.stringify({
@@ -678,7 +675,14 @@ function handleRegisterPC(clientId, message) {
     
     // 기존 세션 정보가 있는지 확인
     if (message.existingSessionCode && message.existingSessionId) {
-        console.log(`🔄 기존 세션 복원 시도: ${message.existingSessionCode}`);
+        console.log(`🔄 기존 세션 복원 시도: ${message.existingSessionCode} / ${message.existingSessionId}`);
+        console.log(`📊 현재 전체 세션 수: ${sessions.size}`);
+        
+        // 디버깅: 모든 세션 목록 출력
+        console.log('📄 전체 세션 목록:');
+        sessions.forEach((session, key) => {
+            console.log(`  - ${key}: 코드=${session.sessionCode}, ID=${session.sessionId}, PC=${session.pcClient}, 센서=${session.sensorClient}`);
+        });
         
         // 기존 세션 찾기
         const existingSession = Array.from(sessions.values()).find(session => 
@@ -688,6 +692,17 @@ function handleRegisterPC(clientId, message) {
         
         if (existingSession) {
             console.log(`✅ 기존 세션 발견: ${message.existingSessionCode}`);
+            console.log(`🔍 세션 상태: PC=${existingSession.pcClient}, 센서=${existingSession.sensorClient}`);
+            
+            // 이전 PC 클라이언트가 아직 연결되어 있다면 연결 해제
+            if (existingSession.pcClient && existingSession.pcClient !== clientId && clients.has(existingSession.pcClient)) {
+                console.log(`🔌 이전 PC 클라이언트 연결 해제: ${existingSession.pcClient}`);
+                const oldPcClient = clients.get(existingSession.pcClient);
+                if (oldPcClient && oldPcClient.ws) {
+                    oldPcClient.ws.close();
+                }
+                clients.delete(existingSession.pcClient);
+            }
             
             // 기존 세션에 PC 클라이언트 연결
             client.sessionId = existingSession.sessionId;
@@ -707,7 +722,10 @@ function handleRegisterPC(clientId, message) {
             return;
         } else {
             console.log(`⚠️ 기존 세션을 찾을 수 없음: ${message.existingSessionCode}`);
+            console.log(`🔍 찾는 조건: 코드=${message.existingSessionCode}, ID=${message.existingSessionId}`);
         }
+    } else {
+        console.log('🆕 기존 세션 정보 없음, 새 세션 생성 예정');
     }
     
     // 기존 세션이 없거나 찾을 수 없는 경우에만 새 세션 생성
@@ -955,46 +973,67 @@ function handleLeaveRoom(clientId, message) {
  */
 function handleDisconnect(clientId) {
     const client = clients.get(clientId);
-    if (!client) return;
+    if (!client) {
+        console.log(`⚠️ 연결 해제 시 클라이언트를 찾을 수 없음: ${clientId}`);
+        return;
+    }
     
-    console.log(`🔌 클라이언트 연결 해제: ${clientId}`);
+    console.log(`🔌 클라이언트 연결 해제: ${clientId} (타입: ${client.type}, 세션: ${client.sessionCode || 'N/A'}, 남은 클라이언트: ${clients.size - 1}개)`);
     
     // 세션에서 클라이언트 제거
     if (client.type === 'pc') {
-        // PC 클라이언트인 경우 세션 비활성화
+        // PC 클라이언트인 경우 세션 처리
         const sessionData = Array.from(sessions.values())
-            .find(s => s.pcClientId === clientId);
+            .find(s => s.pcClient === clientId);
+            
+        console.log(`🔍 PC 클라이언트 세션 찾기 결과:`, sessionData ? `발견 (${sessionData.sessionCode})` : '찾을 수 없음');
         
         if (sessionData) {
-            sessionData.isActive = false;
+            console.log(`📄 PC 클라이언트 연결 해제로 인한 세션 처리: ${sessionData.sessionCode}`);
             
-            // 연결된 센서 클라이언트들에게 알림
-            for (const [sensorClientId, sensorData] of sessionData.sensorClients) {
-                const sensorClient = clients.get(sensorClientId);
+            // PC 클라이언트 연결 해제 시 세션 유지 (센서 남아있음)
+            // sessionData.isActive = false; // 제거: 세션 유지
+            sessionData.pcClient = null; // PC 클라이언트만 제거
+            
+            console.log(`🔗 세션 ${sessionData.sessionCode} 유지 (센서 연결 유지용)`);
+            
+            // 센서 클라이언트에게 알림 (연결 해제가 아닌 PC 대기 상태)
+            if (sessionData.sensorClient) {
+                const sensorClient = clients.get(sessionData.sensorClient);
                 if (sensorClient && sensorClient.ws.readyState === WebSocket.OPEN) {
                     sensorClient.ws.send(JSON.stringify({
-                        type: 'session_disconnected',
-                        reason: 'pc_disconnected'
+                        type: 'pc_disconnected',
+                        sessionCode: sessionData.sessionCode,
+                        message: 'PC 연결이 일시적으로 끊어졌습니다. 재연결을 기다리는 중...'
                     }));
                 }
             }
+        } else {
+            console.log(`⚠️ PC 클라이언트 연결 해제 시 세션을 찾을 수 없음`);
         }
     } else if (client.type === 'sensor') {
         // 센서 클라이언트인 경우 세션에서 제거
         const sessionData = Array.from(sessions.values())
-            .find(s => s.sensorClients.has(clientId));
+            .find(s => s.sensorClient === clientId);
+        
+        console.log(`🔍 센서 클라이언트 세션 찾기 결과:`, sessionData ? `발견 (${sessionData.sessionCode})` : '찾을 수 없음');
         
         if (sessionData) {
-            sessionData.sensorClients.delete(clientId);
+            console.log(`📄 센서 클라이언트 연결 해제: ${sessionData.sessionCode}`);
+            sessionData.sensorClient = null;
             
             // PC 클라이언트에게 센서 연결 해제 알림
-            const pcClient = clients.get(sessionData.pcClientId);
-            if (pcClient && pcClient.ws.readyState === WebSocket.OPEN) {
-                pcClient.ws.send(JSON.stringify({
-                    type: 'sensor_disconnected',
-                    sensorCount: sessionData.sensorClients.size
-                }));
+            if (sessionData.pcClient) {
+                const pcClient = clients.get(sessionData.pcClient);
+                if (pcClient && pcClient.ws.readyState === WebSocket.OPEN) {
+                    pcClient.ws.send(JSON.stringify({
+                        type: 'sensor_disconnected',
+                        sensorCount: 0
+                    }));
+                }
             }
+        } else {
+            console.log(`⚠️ 센서 클라이언트 연결 해제 시 세션을 찾을 수 없음`);
         }
     } else if (client.type === 'admin') {
         // 관리자 클라이언트 제거

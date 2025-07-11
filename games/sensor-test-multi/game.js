@@ -5,6 +5,13 @@
 
 class MultiplayerSensorTestGame extends SensorGameSDK {
     constructor() {
+        // URL 파라미터에서 세션 정보 미리 추출
+        const urlParams = new URLSearchParams(window.location.search);
+        const existingSessionCode = urlParams.get('sessionCode');
+        const existingSessionId = urlParams.get('sessionId');
+        
+        console.log('🔍 URL 파라미터 추출:', { existingSessionCode, existingSessionId });
+        
         super({
             gameId: 'sensor-test-multi',
             gameName: '센서 테스트 (멀티)',
@@ -27,7 +34,11 @@ class MultiplayerSensorTestGame extends SensorGameSDK {
             // 데이터 처리 설정
             smoothingFactor: 1,
             deadzone: 0.05,
-            updateRate: 60
+            updateRate: 60,
+            
+            // 기존 세션 정보 전달
+            existingSessionCode,
+            existingSessionId
         });
         
         // 게임 상태
@@ -84,24 +95,12 @@ class MultiplayerSensorTestGame extends SensorGameSDK {
     init() {
         console.log('🧪 멀티플레이어 센서 테스트 게임 초기화');
         
-        // URL 파라미터에서 세션 정보 추출
-        const urlParams = new URLSearchParams(window.location.search);
-        const sessionCode = urlParams.get('sessionCode');
-        const sessionId = urlParams.get('sessionId');
-        
-        if (sessionCode && sessionId) {
-            console.log('🔄 기존 세션 복원:', sessionCode);
-            this.state.sessionCode = sessionCode;
-            this.state.sessionId = sessionId;
+        // 기존 세션 정보가 있으면 즉시 표시
+        if (this.state.sessionCode && this.state.sessionId) {
+            console.log('🔄 기존 세션 정보 확인:', this.state.sessionCode);
+            this.showSessionCode(this.state.sessionCode);
             
-            // 기존 세션 코드 즉시 표시
-            this.showSessionCode(sessionCode);
-            
-            // 서버에 기존 세션 복원 요청
-            setTimeout(() => {
-                console.log('🔄 기존 세션으로 룸 생성 시작...');
-                this.createRoom('sensor-test-multi', '센서 테스트 룸');
-            }, 1000);
+            // 세션 복원 후 룸 생성 대기 (세션 이벤트에서 처리)
         }
         
         // 캔버스 설정
