@@ -287,10 +287,10 @@
         
         <!-- 컨트롤 버튼 (하단 중앙) -->
         <div class="ui-panel bottom-center">
-            <button class="btn btn-secondary" onclick="game && game.calibrate && game.calibrate()">
+            <button class="btn btn-secondary" onclick="window.gameInstance && window.gameInstance.calibrate && window.gameInstance.calibrate()">
                 ⚖️ 센서 보정
             </button>
-            <button class="btn btn-secondary" onclick="game && game.restart && game.restart()">
+            <button class="btn btn-secondary" onclick="window.gameInstance && window.gameInstance.restart && window.gameInstance.restart()">
                 🔄 다시 시작
             </button>
             <button class="btn btn-secondary" onclick="window.open('/', '_blank')">
@@ -366,8 +366,8 @@
     </script>
     
     <script>
-        // 전역 변수
-        let game = null;
+        // 전역 변수 (game.js에서 설정될 예정)
+        window.gameInstance = null;
         
         /**
          * 게임 시작 함수
@@ -379,8 +379,8 @@
             }
             
             // 게임 인스턴스가 있으면 시작
-            if (window.game && typeof window.game.start === 'function') {
-                window.game.start();
+            if (window.gameInstance && typeof window.gameInstance.start === 'function') {
+                window.gameInstance.start();
             }
         }
         
@@ -393,8 +393,8 @@
                 gameOverScreen.style.display = 'none';
             }
             
-            if (window.game && typeof window.game.restart === 'function') {
-                window.game.restart();
+            if (window.gameInstance && typeof window.gameInstance.restart === 'function') {
+                window.gameInstance.restart();
             }
         }
         
@@ -441,7 +441,7 @@
             
             // 게임 인스턴스가 생성될 때까지 대기
             const checkGameReady = () => {
-                if (window.game) {
+                if (window.gameInstance) {
                     console.log('✅ 게임 인스턴스 준비 완료');
                 } else {
                     setTimeout(checkGameReady, 100);

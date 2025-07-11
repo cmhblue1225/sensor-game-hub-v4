@@ -374,7 +374,7 @@
         
         <!-- 컨트롤 버튼 (우하단) -->
         <div class="ui-panel controls-panel">
-            <button class="btn btn-secondary" onclick="game && game.calibrate && game.calibrate()">
+            <button class="btn btn-secondary" onclick="window.gameInstance && window.gameInstance.calibrate && window.gameInstance.calibrate()">
                 ⚖️ 보정
             </button>
             <button class="btn btn-secondary" onclick="window.open('/', '_blank')">
@@ -444,14 +444,14 @@
     
     <script>
         // 전역 변수
-        let game = null;
+        // game 변수를 제거하여 충돌 방지
         
         /**
          * 멀티플레이어 게임 시작
          */
         function startMultiplayerGame() {
-            if (window.game && typeof window.game.startGame === 'function') {
-                window.game.startGame();
+            if (window.gameInstance && typeof window.gameInstance.startGame === 'function') {
+                window.gameInstance.startGame();
             }
         }
         
@@ -459,8 +459,8 @@
          * 대기실 나가기
          */
         function leaveLobby() {
-            if (window.game && typeof window.game.leaveRoom === 'function') {
-                window.game.leaveRoom();
+            if (window.gameInstance && typeof window.gameInstance.leaveRoom === 'function') {
+                window.gameInstance.leaveRoom();
             }
             // 허브로 이동
             window.location.href = '/';
@@ -481,8 +481,8 @@
                 lobbyScreen.style.display = 'flex';
             }
             
-            if (window.game && typeof window.game.restart === 'function') {
-                window.game.restart();
+            if (window.gameInstance && typeof window.gameInstance.restart === 'function') {
+                window.gameInstance.restart();
             }
         }
         
@@ -524,7 +524,7 @@
             }
             
             // 호스트인 경우 게임 시작 버튼 표시
-            if (startBtn && window.game && window.game.state.isHost) {
+            if (startBtn && window.gameInstance && window.gameInstance.state.isHost) {
                 startBtn.classList.remove('hidden');
             }
         }
@@ -628,7 +628,7 @@
             
             // 게임 인스턴스가 생성될 때까지 대기
             const checkGameReady = () => {
-                if (window.game) {
+                if (window.gameInstance) {
                     console.log('✅ 게임 인스턴스 준비 완료');
                 } else {
                     setTimeout(checkGameReady, 100);
