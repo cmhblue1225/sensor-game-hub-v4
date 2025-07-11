@@ -503,27 +503,70 @@ class SensorTestGame extends SensorGameSDK {
             
             // 각 센서 값 검사
             if (gameInput.tilt) {
-                if (typeof gameInput.tilt.x !== 'number' || typeof gameInput.tilt.y !== 'number') {
-                    console.error('❌ 방향 센서 값이 올바르지 않습니다:', gameInput.tilt);
+                console.log('🔍 tilt 상세 검사:', gameInput.tilt);
+                
+                // tilt가 객체인지 확인
+                if (typeof gameInput.tilt !== 'object' || gameInput.tilt === null) {
+                    console.error('❌ tilt가 객체가 아닙니다:', gameInput.tilt);
                     return false;
+                }
+                
+                // x, y 속성이 존재하고 숫자인지 확인 (유연한 검사)
+                const hasX = gameInput.tilt.hasOwnProperty('x') && (typeof gameInput.tilt.x === 'number' || !isNaN(parseFloat(gameInput.tilt.x)));
+                const hasY = gameInput.tilt.hasOwnProperty('y') && (typeof gameInput.tilt.y === 'number' || !isNaN(parseFloat(gameInput.tilt.y)));
+                
+                if (!hasX || !hasY) {
+                    console.warn('⚠️ 방향 센서 일부 값이 누락되거나 올바르지 않습니다:', {
+                        tilt: gameInput.tilt,
+                        checks: { hasX, hasY }
+                    });
+                    // 경고만 하고 계속 진행 (완전히 차단하지 않음)
                 }
             }
             
             if (gameInput.movement) {
-                if (typeof gameInput.movement.x !== 'number' || 
-                    typeof gameInput.movement.y !== 'number' || 
-                    typeof gameInput.movement.z !== 'number') {
-                    console.error('❌ 가속도계 값이 올바르지 않습니다:', gameInput.movement);
+                console.log('🔍 movement 상세 검사:', gameInput.movement);
+                
+                // movement가 객체인지 확인
+                if (typeof gameInput.movement !== 'object' || gameInput.movement === null) {
+                    console.error('❌ movement가 객체가 아닙니다:', gameInput.movement);
                     return false;
+                }
+                
+                // x, y, z 속성이 존재하고 숫자인지 확인 (유연한 검사)
+                const hasX = gameInput.movement.hasOwnProperty('x') && (typeof gameInput.movement.x === 'number' || !isNaN(parseFloat(gameInput.movement.x)));
+                const hasY = gameInput.movement.hasOwnProperty('y') && (typeof gameInput.movement.y === 'number' || !isNaN(parseFloat(gameInput.movement.y)));
+                const hasZ = gameInput.movement.hasOwnProperty('z') && (typeof gameInput.movement.z === 'number' || !isNaN(parseFloat(gameInput.movement.z)));
+                
+                if (!hasX || !hasY || !hasZ) {
+                    console.warn('⚠️ 가속도계 일부 값이 누락되거나 올바르지 않습니다:', {
+                        movement: gameInput.movement,
+                        checks: { hasX, hasY, hasZ }
+                    });
+                    // 경고만 하고 계속 진행 (완전히 차단하지 않음)
                 }
             }
             
             if (gameInput.rotation) {
-                if (typeof gameInput.rotation.x !== 'number' || 
-                    typeof gameInput.rotation.y !== 'number' || 
-                    typeof gameInput.rotation.z !== 'number') {
-                    console.error('❌ 자이로스코프 값이 올바르지 않습니다:', gameInput.rotation);
+                console.log('🔍 rotation 상세 검사:', gameInput.rotation);
+                
+                // rotation이 객체인지 확인
+                if (typeof gameInput.rotation !== 'object' || gameInput.rotation === null) {
+                    console.error('❌ rotation이 객체가 아닙니다:', gameInput.rotation);
                     return false;
+                }
+                
+                // x, y, z 속성이 존재하고 숫자인지 확인 (유연한 검사)
+                const hasX = gameInput.rotation.hasOwnProperty('x') && (typeof gameInput.rotation.x === 'number' || !isNaN(parseFloat(gameInput.rotation.x)));
+                const hasY = gameInput.rotation.hasOwnProperty('y') && (typeof gameInput.rotation.y === 'number' || !isNaN(parseFloat(gameInput.rotation.y)));
+                const hasZ = gameInput.rotation.hasOwnProperty('z') && (typeof gameInput.rotation.z === 'number' || !isNaN(parseFloat(gameInput.rotation.z)));
+                
+                if (!hasX || !hasY || !hasZ) {
+                    console.warn('⚠️ 자이로스코프 일부 값이 누락되거나 올바르지 않습니다:', {
+                        rotation: gameInput.rotation,
+                        checks: { hasX, hasY, hasZ }
+                    });
+                    // 경고만 하고 계속 진행 (완전히 차단하지 않음)
                 }
             }
         }
@@ -569,9 +612,18 @@ class SensorTestGame extends SensorGameSDK {
                 console.warn('   2. 디바이스를 실제로 움직이고 있는지 확인');
                 console.warn('   3. HTTPS 연결 상태인지 확인');
                 console.warn('   4. 브라우저가 최신 버전인지 확인');
+                console.warn('   5. API 문서 기준: tilt, movement, rotation, shake 센서 확인');
                 
                 this.sensorTest.monitoring.noDataWarningShown = true;
                 this.showMessage('⚠️ 센서 데이터가 수신되지 않습니다. 디바이스를 움직여보세요.', 'warning');
+                
+                // 20초 후에도 데이터가 없으면 시뮬레이션 모드 제안
+                setTimeout(() => {
+                    if (!this.sensorTest.monitoring.dataReceived) {
+                        console.warn('🎮 센서 데이터 수신 실패 - 시뮬레이션 모드 활성화를 고려해보세요');
+                        this.showMessage('🎮 센서가 작동하지 않습니다. 키보드 시뮬레이션을 활성화하시겠습니까?', 'info');
+                    }
+                }, 10000);
             }
         } else {
             // 데이터 수신 중이면 경고 플래그 리셋
@@ -607,6 +659,15 @@ class SensorTestGame extends SensorGameSDK {
         }
         
         console.log('📱 센서 데이터 수신:', { gameInput, sensorType });
+        console.log('🔍 상세 gameInput 구조:', JSON.stringify(gameInput, null, 2));
+        
+        // API 문서 기준 센서 데이터 존재 여부 체크
+        console.log('🔍 API 문서 기준 센서 체크:', {
+            hasTilt: !!gameInput.tilt,
+            hasMovement: !!gameInput.movement, 
+            hasRotation: !!gameInput.rotation,
+            hasShake: !!gameInput.shake
+        });
         
         // 1. 방향 센서 (기울기) - 빨간 볼 이동
         if (gameInput.tilt) {
