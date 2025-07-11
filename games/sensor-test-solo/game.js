@@ -217,7 +217,13 @@ class SensorTestGame extends SensorGameSDK {
         this.on('onSensorConnected', (data) => {
             this.hideSessionCode();
             this.updateSensorStatus(true);
-            this.showMessage('📱 센서 연결됨! 게임을 시작하세요.', 'success');
+            this.showMessage('📱 센서 연결됨! 게임을 시작합니다.', 'success');
+            
+            // 센서 테스트를 위해 즉시 게임 시작
+            console.log('🎮 센서 연결됨 - 즉시 게임 시작');
+            setTimeout(() => {
+                this.startGame();
+            }, 1500);
         });
         
         // 센서 연결 해제

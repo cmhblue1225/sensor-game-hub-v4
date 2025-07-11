@@ -189,6 +189,12 @@ class MultiplayerSensorTestGame extends SensorGameSDK {
         this.on('onSensorConnected', (data) => {
             this.hideSessionCode();
             this.updateSensorStatus(true);
+            
+            // 센서 테스트를 위해 즉시 게임 시작
+            console.log('🎮 센서 연결됨 - 즉시 게임 시작');
+            setTimeout(() => {
+                this.startGameplay();
+            }, 1000);
         });
         
         // 룸 생성 완료
