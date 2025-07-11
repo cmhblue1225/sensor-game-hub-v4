@@ -109,6 +109,9 @@ class MultiplayerSensorTestGame extends SensorGameSDK {
         // SDK 콜백 등록
         this.setupCallbacks();
         
+        // 키보드 입력 설정 (시뮬레이션 모드)
+        this.setupKeyboardControls();
+        
         // 게임 월드 초기화
         this.initializeGameWorld();
         
@@ -241,6 +244,73 @@ class MultiplayerSensorTestGame extends SensorGameSDK {
         this.on('onError', (error) => {
             console.error('게임 오류:', error);
         });
+    }
+    
+    /**
+     * 키보드 컨트롤 설정
+     */
+    setupKeyboardControls() {
+        this.keys = {};
+        
+        document.addEventListener('keydown', (e) => {
+            this.keys[e.code] = true;
+            
+            // 특수 키 처리
+            switch (e.code) {
+                case 'KeyR':
+                    this.calibrate();
+                    break;
+                case 'KeyP':
+                    this.pause();
+                    break;
+                case 'Escape':
+                    this.pause();
+                    break;
+            }
+        });
+        
+        document.addEventListener('keyup', (e) => {
+            this.keys[e.code] = false;
+        });
+    }
+    
+    /**
+     * 키보드 입력 처리 (시뮬레이션 모드)
+     */
+    handleKeyboardInput() {
+        // 센서 테스트 게임에서는 항상 키보드 시뮬레이션 활성화
+        if (this.myPlayer && this.keys) {
+            let moveX = 0;
+            let moveY = 0;
+            
+            // WASD로 플레이어 이동
+            if (this.keys['KeyA']) moveX -= 8;
+            if (this.keys['KeyD']) moveX += 8;
+            if (this.keys['KeyW']) moveY -= 8;
+            if (this.keys['KeyS']) moveY += 8;
+            
+            if (moveX !== 0 || moveY !== 0) {
+                this.myPlayer.position.x += moveX;
+                this.myPlayer.position.y += moveY;
+                
+                // 경계 처리
+                this.myPlayer.position.x = this.clamp(this.myPlayer.position.x, 25, window.innerWidth - 25);
+                this.myPlayer.position.y = this.clamp(this.myPlayer.position.y, 25, window.innerHeight - 25);
+                
+                // 궤적 추가
+                this.addPlayerTrail();
+            }
+            
+            // 스페이스바로 파티클 생성 (흔들기 시뮬레이션)
+            if (this.keys['Space']) {
+                this.createPlayerParticles(
+                    this.myPlayer.position.x, 
+                    this.myPlayer.position.y, 
+                    this.myPlayer.color, 
+                    10
+                );
+            }
+        }
     }
     
     /**
@@ -588,6 +658,9 @@ class MultiplayerSensorTestGame extends SensorGameSDK {
     update(currentTime) {
         const deltaTime = currentTime - this.lastFrameTime;
         this.lastFrameTime = currentTime;
+        
+        // 키보드 입력 처리
+        this.handleKeyboardInput();
         
         // 파티클 업데이트
         this.updateParticles();

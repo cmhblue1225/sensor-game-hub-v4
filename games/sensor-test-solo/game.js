@@ -743,8 +743,19 @@ class SensorTestGame extends SensorGameSDK {
      * 키보드 입력 처리 (시뮬레이션 모드)
      */
     handleKeyboardInput() {
-        if (!this.state.sensorConnected) {
-            // 센서가 연결되지 않았을 때만 키보드 시뮬레이션
+        // 디버깅을 위한 로그 (처음 몇 번만)
+        if (!this.keyboardDebugCount) this.keyboardDebugCount = 0;
+        if (this.keyboardDebugCount < 5) {
+            console.log('🎮 키보드 입력 체크:', { 
+                sensorConnected: this.state.sensorConnected,
+                keysPressed: Object.keys(this.keys).filter(key => this.keys[key])
+            });
+            this.keyboardDebugCount++;
+        }
+        
+        // 센서 테스트 게임에서는 항상 키보드 시뮬레이션 활성화
+        if (true) {
+            // 키보드 시뮬레이션 (센서 연결 여부와 무관)
             let moveX = 0;
             let moveY = 0;
             
