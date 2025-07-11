@@ -39,23 +39,7 @@ class SensorTestGame extends SensorGameSDK {
             existingSessionId
         });
         
-        // 게임 상태
-        this.gameState = {
-            isPlaying: false,
-            isPaused: false,
-            testStartTime: 0
-        };
-        
-        // 센서 테스트 데이터
-        this.sensorTest = {
-            orientation: { tilt: { x: 0, y: 0 }, rotation: 0 },
-            accelerometer: { x: 0, y: 0, z: 0, shake: false },
-            gyroscope: { x: 0, y: 0, z: 0 },
-            lastUpdate: 0,
-            maxValues: { accel: 0, gyro: 0 }
-        };
-        
-        // 시각적 객체들
+        // 중요: 시각적 요소를 먼저 초기화 (resizeCanvas에서 사용)
         this.visualElements = {
             // 메인 테스트 볼
             ball: {
@@ -87,6 +71,22 @@ class SensorTestGame extends SensorGameSDK {
             shakeThreshold: 12,
             gyroColorSpeed: 0.02,
             historyLength: 100
+        };
+        
+        // 게임 상태
+        this.gameState = {
+            isPlaying: false,
+            isPaused: false,
+            testStartTime: 0
+        };
+        
+        // 센서 테스트 데이터
+        this.sensorTest = {
+            orientation: { tilt: { x: 0, y: 0 }, rotation: 0 },
+            accelerometer: { x: 0, y: 0, z: 0, shake: false },
+            gyroscope: { x: 0, y: 0, z: 0 },
+            lastUpdate: 0,
+            maxValues: { accel: 0, gyro: 0 }
         };
         
         // 렌더링
@@ -176,9 +176,11 @@ class SensorTestGame extends SensorGameSDK {
         this.canvas.style.width = rect.width + 'px';
         this.canvas.style.height = rect.height + 'px';
         
-        // 테스트 볼 초기 위치 설정
-        this.visualElements.ball.x = rect.width / 2;
-        this.visualElements.ball.y = rect.height / 2;
+        // 테스트 볼 초기 위치 설정 (방어 코드)
+        if (this.visualElements && this.visualElements.ball) {
+            this.visualElements.ball.x = rect.width / 2;
+            this.visualElements.ball.y = rect.height / 2;
+        }
     }
     
     /**
